@@ -148,19 +148,6 @@ export default function GuestView() {
                 ))}
               </div>
 
-              {(rsvpForm.response === 'yes' || rsvpForm.response === 'maybe') && (
-                <div className="form-group">
-                  <label className="form-label">How many members (including you)?</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    min="1"
-                    max="50"
-                    value={rsvpForm.member_count}
-                    onChange={(e) => setRsvpForm({ ...rsvpForm, member_count: e.target.value })}
-                  />
-                </div>
-              )}
 
               <div className="form-group">
                 <label className="form-label">Message (optional)</label>

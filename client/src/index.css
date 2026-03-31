@@ -39,9 +39,9 @@
   /* Neutrals */
   --bg-primary: #0F0E17;
   --bg-secondary: #1A1929;
-  --bg-card: #232136;
-  --bg-card-hover: #2D2B4A;
-  --bg-input: #1E1D2F;
+  --bg-card: rgba(35, 33, 54, 0.85);
+  --bg-card-hover: rgba(45, 43, 74, 0.9);
+  --bg-input: rgba(30, 29, 47, 0.8);
   --border: rgba(255, 255, 255, 0.08);
   --border-hover: rgba(255, 255, 255, 0.15);
 
@@ -279,6 +279,7 @@ h4 { font-size: 1.1rem; font-weight: 500; }
   outline: none;
 }
 
+
 .form-input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-glow);
@@ -314,12 +315,6 @@ select.form-input {
   border-color: var(--border-hover);
 }
 
-.card-glass {
-  background: rgba(35, 33, 54, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
 
 /* ===== BADGES ===== */
 .badge {

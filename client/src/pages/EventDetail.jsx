@@ -70,9 +70,17 @@ export default function EventDetail() {
   const sendInvitations = async () => {
     if (selectedContacts.length === 0) { showToast('Select at least one contact', 'error'); return; }
     try {
-      await inviteService.create(id, selectedContacts);
+      const res = await inviteService.create(id, selectedContacts);
       showToast('Invitations created! 📨');
       setShowInviteModal(false);
+      
+      if (res.data && res.data.results) {
+        const createdInvites = res.data.results.filter(r => r.status === 'created');
+        for (const result of createdInvites) {
+          await sendWhatsApp(result.invitation.id);
+        }
+      }
+
       setSelectedContacts([]);
       loadAll();
     } catch (err) { showToast(err.response?.data?.error || 'Failed', 'error'); }
@@ -177,14 +185,14 @@ export default function EventDetail() {
                 <div className="progress-container">
                   <div className="progress-header">
                     <span className="progress-label" style={{ color: 'var(--rsvp-yes)' }}>✓ Yes</span>
-                    <span className="progress-value">{rsvpStats?.yes || 0} ({rsvpStats?.totalMembers || 0} members)</span>
+                    <span className="progress-value">{rsvpStats?.yes || 0}</span>
                   </div>
                   <div className="progress-bar"><div className="progress-fill progress-yes" style={{ width: `${totalRsvp ? ((rsvpStats?.yes || 0) / totalRsvp * 100) : 0}%` }}></div></div>
                 </div>
                 <div className="progress-container">
                   <div className="progress-header">
                     <span className="progress-label" style={{ color: 'var(--rsvp-maybe)' }}>? Maybe</span>
-                    <span className="progress-value">{rsvpStats?.maybe || 0} ({rsvpStats?.maybeMembers || 0} members)</span>
+                    <span className="progress-value">{rsvpStats?.maybe || 0}</span>
                   </div>
                   <div className="progress-bar"><div className="progress-fill progress-maybe" style={{ width: `${totalRsvp ? ((rsvpStats?.maybe || 0) / totalRsvp * 100) : 0}%` }}></div></div>
                 </div>
@@ -202,8 +210,8 @@ export default function EventDetail() {
           {/* Quick Stats */}
           <div className="flex gap-sm">
             <div className="card" style={{ flex: 1, padding: 'var(--space-md)', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent-green)' }}>{rsvpStats?.totalMembers || 0}</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Confirmed<br/>Members</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent-green)' }}>{rsvpStats?.yes || 0}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Confirmed<br/>Guests</div>
             </div>
             <div className="card" style={{ flex: 1, padding: 'var(--space-md)', textAlign: 'center' }}>
               <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--primary-light)' }}>{event.wishlistItems?.length || 0}</div>
@@ -315,12 +323,9 @@ export default function EventDetail() {
                       {rsvp.guest?.phone && <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{rsvp.guest.phone}</p>}
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <span className={`badge ${rsvp.response === 'yes' ? 'badge-success' : rsvp.response === 'no' ? 'badge-danger' : 'badge-warning'}`}>
+                      <span className={`badge ${rsvp.response === 'yes' ? 'badge-success' : rsvp.response === 'no' ? 'badge-danger' : rsvp.response === 'no' ? 'badge-danger' : 'badge-warning'}`}>
                         {rsvp.response === 'yes' ? '✓ Yes' : rsvp.response === 'no' ? '✕ No' : '? Maybe'}
                       </span>
-                      {rsvp.member_count > 1 && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>+{rsvp.member_count - 1} members</div>
-                      )}
                     </div>
                   </div>
                   {rsvp.message && (
@@ -376,8 +381,12 @@ export default function EventDetail() {
         <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Select Contacts to Invite</h3>
+              <h3>Send Invitations</h3>
               <button className="modal-close" onClick={() => setShowInviteModal(false)}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: 'var(--space-sm)' }}>
+              <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Select from Contacts</h4>
             </div>
 
             {contacts.length === 0 ? (
