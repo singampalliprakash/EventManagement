@@ -82,7 +82,7 @@ export default function GuestView() {
   const totalRsvp = (rsvpStats?.yes || 0) + (rsvpStats?.no || 0) + (rsvpStats?.maybe || 0);
 
   return (
-    <div className="page" style={{ paddingBottom: 'var(--space-lg)' }}>
+    <div className="page">
       <ToastContainer />
 
       {/* Event Header */}

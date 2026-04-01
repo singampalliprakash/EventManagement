@@ -8,6 +8,11 @@ const addContact = async (req, res, next) => {
       return res.status(400).json({ error: 'Name and phone are required.' });
     }
 
+    const existing = await Contact.findOne({ where: { user_id: req.user.id, phone } });
+    if (existing) {
+      return res.status(400).json({ error: 'A contact with this phone number already exists.' });
+    }
+
     const contact = await Contact.create({
       user_id: req.user.id,
       name,
@@ -46,6 +51,14 @@ const updateContact = async (req, res, next) => {
     }
 
     const { name, phone, email, group_label } = req.body;
+
+    if (phone && phone !== contact.phone) {
+      const existing = await Contact.findOne({ where: { user_id: req.user.id, phone } });
+      if (existing) {
+        return res.status(400).json({ error: 'Another contact with this phone number already exists.' });
+      }
+    }
+
     await contact.update({ name, phone, email, group_label });
 
     res.json({ message: 'Contact updated!', contact });

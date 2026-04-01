@@ -364,11 +364,6 @@ export default function EventDetail() {
                     </div>
                     <span className={`badge status-${inv.status}`}>{inv.status}</span>
                   </div>
-                  {inv.status === 'pending' || inv.status === 'sent' ? (
-                    <button onClick={() => sendWhatsApp(inv.id)} className="btn btn-whatsapp btn-sm btn-block">
-                      📱 {inv.status === 'pending' ? 'Send via WhatsApp' : 'Resend via WhatsApp'}
-                    </button>
-                  ) : null}
                 </div>
               ))}
             </div>
