@@ -132,6 +132,9 @@ const getWhatsAppLink = async (req, res, next) => {
       day: 'numeric',
     });
 
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const inviteLink = `${clientUrl}/event/${event.share_code}?guest=${invitation.guest.access_token}`;
+
     const message = `🎉 *You're invited to ${event.title}!*
 
 📅 *Date:* ${eventDate}
@@ -139,7 +142,7 @@ const getWhatsAppLink = async (req, res, next) => {
 
 ${event.description ? `📝 ${event.description}\n` : ''}
 👉 *View event, browse wishlist & RSVP:*
-${invitation.invite_link}
+${inviteLink}
 
 Please confirm your attendance! 🙏`;
 
