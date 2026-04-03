@@ -7,7 +7,6 @@ import CreateEvent from './pages/CreateEvent';
 import EventDetail from './pages/EventDetail';
 import ManageContacts from './pages/ManageContacts';
 import GuestView from './pages/GuestView';
-import QuickRsvp from './pages/QuickRsvp';
 import BottomNav from './components/BottomNav';
 import './index.css';
 
