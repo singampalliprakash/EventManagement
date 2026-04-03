@@ -84,4 +84,59 @@ const deleteContact = async (req, res, next) => {
   }
 };
 
-module.exports = { addContact, getContacts, updateContact, deleteContact };
+const bulkAddContacts = async (req, res, next) => {
+  try {
+    const { contacts } = req.body; // Array of { name, phone, email, group_label }
+
+    if (!contacts || !Array.isArray(contacts)) {
+      return res.status(400).json({ error: 'Contacts array is required.' });
+    }
+
+    const results = { created: 0, skipped: 0 };
+    
+    // Get existing phone numbers for this user to check for duplicates
+    const existingContacts = await Contact.findAll({
+      where: { user_id: req.user.id },
+      attributes: ['phone']
+    });
+    const existingPhones = new Set(existingContacts.map(c => c.phone));
+
+    const contactsToCreate = [];
+    for (const c of contacts) {
+      if (!c.name || !c.phone) continue;
+      
+      // Clean phone number (some importers might include extra chars)
+      const cleanPhone = c.phone.toString().replace(/[^0-9]/g, '');
+      
+      if (existingPhones.has(cleanPhone)) {
+        results.skipped++;
+        continue;
+      }
+
+      contactsToCreate.push({
+        user_id: req.user.id,
+        name: c.name,
+        phone: cleanPhone,
+        email: c.email || null,
+        group_label: c.group_label || 'General'
+      });
+      
+      // Add to set to prevent duplicates within the same bulk upload
+      existingPhones.add(cleanPhone);
+      results.created++;
+    }
+
+    if (contactsToCreate.length > 0) {
+      await Contact.bulkCreate(contactsToCreate);
+    }
+
+    res.status(201).json({ 
+      message: `Import complete! Added ${results.created} contacts, skipped ${results.skipped} duplicates.`,
+      results 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { addContact, getContacts, updateContact, deleteContact, bulkAddContacts };

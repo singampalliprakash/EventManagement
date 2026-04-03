@@ -32,6 +32,7 @@ export const rsvpService = {
 
 export const contactService = {
   create: (data) => api.post('/contacts', data),
+  bulkCreate: (contacts) => api.post('/contacts/bulk', { contacts }),
   getAll: () => api.get('/contacts'),
   update: (id, data) => api.put(`/contacts/${id}`, data),
   delete: (id) => api.delete(`/contacts/${id}`),

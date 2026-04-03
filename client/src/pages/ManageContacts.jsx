@@ -11,6 +11,10 @@ export default function ManageContacts() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', group_label: 'General' });
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importType, setImportType] = useState(null); // 'phone' | 'csv'
+  const [pendingContacts, setPendingContacts] = useState([]);
+  const [importLoading, setImportLoading] = useState(false);
 
   useEffect(() => { loadContacts(); }, []);
 
@@ -37,6 +41,88 @@ export default function ManageContacts() {
       setEditId(null);
       loadContacts();
     } catch (err) { showToast(err.response?.data?.error || 'Failed', 'error'); }
+  };
+
+  const handlePhoneImport = async () => {
+    if (!('contacts' in navigator && 'select' in navigator.contacts)) {
+      showToast('Contact Picker not supported on this browser. Use CSV import instead!', 'warning');
+      return;
+    }
+
+    try {
+      const props = ['name', 'tel', 'email'];
+      const opts = { multiple: true };
+      const selected = await navigator.contacts.select(props, opts);
+      
+      if (selected.length > 0) {
+        const formatted = selected.map(c => ({
+          name: c.name?.[0] || 'Unknown',
+          phone: c.tel?.[0]?.replace(/[^0-9]/g, '') || '',
+          email: c.email?.[0] || '',
+          group_label: 'General',
+          selected: true
+        })).filter(c => c.phone);
+        
+        setPendingContacts(formatted);
+        setImportType('review');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Import cancelled or failed', 'error');
+    }
+  };
+
+  const handleCsvUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      const lines = text.split('\n');
+      const results = [];
+      
+      // Simple CSV Parse (Name, Phone, Email)
+      lines.forEach((line, index) => {
+        if (index === 0 && line.toLowerCase().includes('name')) return; // Skip header
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length >= 2) {
+          results.push({
+            name: parts[0],
+            phone: parts[1].replace(/[^0-9]/g, ''),
+            email: parts[2] || '',
+            group_label: 'General',
+            selected: true
+          });
+        }
+      });
+
+      if (results.length > 0) {
+        setPendingContacts(results);
+        setImportType('review');
+      } else {
+        showToast('No valid contacts found in file', 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const submitImport = async () => {
+    const toImport = pendingContacts.filter(c => c.selected);
+    if (toImport.length === 0) { showToast('No contacts selected', 'error'); return; }
+
+    setImportLoading(true);
+    try {
+      const res = await contactService.bulkCreate(toImport);
+      showToast(res.data.message);
+      setShowImportModal(false);
+      setPendingContacts([]);
+      setImportType(null);
+      loadContacts();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Bulk import failed', 'error');
+    }
+    setImportLoading(false);
   };
 
   const editContact = (contact) => {
@@ -70,9 +156,14 @@ export default function ManageContacts() {
 
       <div className="flex items-center justify-between mb-lg">
         <h1>Contacts</h1>
-        <button onClick={() => { setShowForm(true); setEditId(null); setForm({ name: '', phone: '', email: '', group_label: 'General' }); }} className="btn btn-primary btn-sm" id="add-contact-btn">
-          + Add
-        </button>
+        <div className="flex gap-xs">
+          <button onClick={() => setShowImportModal(true)} className="btn btn-secondary btn-sm" id="import-contacts-btn">
+            📥 Import
+          </button>
+          <button onClick={() => { setShowForm(true); setEditId(null); setForm({ name: '', phone: '', email: '', group_label: 'General' }); }} className="btn btn-primary btn-sm" id="add-contact-btn">
+            + Add
+          </button>
+        </div>
       </div>
 
       {/* Add/Edit Form */}
@@ -104,6 +195,59 @@ export default function ManageContacts() {
           <div className="flex gap-sm">
             <button onClick={() => { setShowForm(false); setEditId(null); }} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
             <button onClick={handleSubmit} className="btn btn-primary" style={{ flex: 1 }}>{editId ? 'Update' : 'Add Contact'}</button>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="modal-overlay" onClick={() => !importLoading && setShowImportModal(false)}>
+          <div className="modal-content card-glass" onClick={e => e.stopPropagation()} style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="flex justify-between items-center mb-md">
+              <h3>Import Contacts</h3>
+              <button onClick={() => setShowImportModal(false)} className="btn-close">×</button>
+            </div>
+
+            {!importType ? (
+              <div className="flex flex-col gap-md">
+                <button onClick={handlePhoneImport} className="btn btn-glass btn-lg flex items-center justify-center gap-sm">
+                  📱 Select from Phone
+                </button>
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>— OR —</div>
+                <label className="btn btn-secondary btn-lg flex items-center justify-center gap-sm cursor-pointer">
+                  📄 Upload CSV File
+                  <input type="file" accept=".csv" hidden onChange={handleCsvUpload} />
+                </label>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  CSV Format: Name, Phone, Email
+                </p>
+              </div>
+            ) : importType === 'review' ? (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <p style={{ fontSize: '0.85rem', marginBottom: 'var(--space-sm)' }}>Found {pendingContacts.length} contacts. Select to add:</p>
+                <div className="flex-1 overflow-y-auto mb-md pr-xs">
+                  {pendingContacts.map((c, i) => (
+                    <div key={i} className="flex items-center gap-sm p-sm mb-xs" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={c.selected} 
+                        onChange={() => setPendingContacts(prev => prev.map((item, idx) => idx === i ? {...item, selected: !item.selected} : item))}
+                      />
+                      <div className="flex-1">
+                        <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{c.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.phone}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-sm">
+                  <button onClick={() => setImportType(null)} className="btn btn-secondary" style={{ flex: 1 }}>Back</button>
+                  <button onClick={submitImport} className="btn btn-primary" style={{ flex: 2 }} disabled={importLoading}>
+                    {importLoading ? 'Saving...' : `Add ${pendingContacts.filter(c => c.selected).length} Contacts`}
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}
