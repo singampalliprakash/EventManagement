@@ -134,10 +134,6 @@ const getWhatsAppLink = async (req, res, next) => {
 
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const inviteLink = `${clientUrl}/event/${event.share_code}?guest=${invitation.guest.access_token}`;
-    
-    // One-Click RSVP Links
-    const yesLink = `${clientUrl}/rsvp/quick?status=yes&guest=${invitation.guest.access_token}&event=${event.id}&code=${event.share_code}`;
-    const noLink = `${clientUrl}/rsvp/quick?status=no&guest=${invitation.guest.access_token}&event=${event.id}&code=${event.share_code}`;
 
     const message = `🎉 *You're invited to ${event.title}!*
 
@@ -145,13 +141,8 @@ const getWhatsAppLink = async (req, res, next) => {
 📍 *Venue:* ${event.venue || 'TBD'}
 
 ${event.description ? `📝 ${event.description}\n` : ''}
-👉 *View details & wishlist:*
+👉 *View event, browse wishlist & RSVP:*
 ${inviteLink}
-
----
-⚡ *Quick RSVP (Click to reply):*
-✅ *I'm coming:* ${yesLink}
-❌ *Can't make it:* ${noLink}
 
 Please confirm your attendance! 🙏`;
 

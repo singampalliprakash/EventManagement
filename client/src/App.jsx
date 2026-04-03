@@ -31,7 +31,6 @@ function AppRoutes() {
         <Route path="/event-detail/:id" element={<PrivateRoute><EventDetail /></PrivateRoute>} />
         <Route path="/contacts" element={<PrivateRoute><ManageContacts /></PrivateRoute>} />
         <Route path="/event/:code" element={<GuestView />} />
-        <Route path="/rsvp/quick" element={<QuickRsvp />} />
         <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
       </Routes>
       {isAuthenticated && <BottomNav />}
