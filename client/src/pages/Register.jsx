@@ -20,7 +20,8 @@ export default function Register() {
       await register(form.name, form.email, form.password, form.phone);
       showToast('Account created! 🎉');
     } catch (err) {
-      showToast(err.response?.data?.error || 'Registration failed', 'error');
+      const errorMsg = err.response?.data?.details?.join(', ') || err.response?.data?.error || 'Registration failed';
+      showToast(errorMsg, 'error');
     }
     setLoading(false);
   };

@@ -7,6 +7,7 @@ import CreateEvent from './pages/CreateEvent';
 import EventDetail from './pages/EventDetail';
 import ManageContacts from './pages/ManageContacts';
 import GuestView from './pages/GuestView';
+import QuickRsvp from './pages/QuickRsvp';
 import BottomNav from './components/BottomNav';
 import './index.css';
 
@@ -30,6 +31,7 @@ function AppRoutes() {
         <Route path="/event-detail/:id" element={<PrivateRoute><EventDetail /></PrivateRoute>} />
         <Route path="/contacts" element={<PrivateRoute><ManageContacts /></PrivateRoute>} />
         <Route path="/event/:code" element={<GuestView />} />
+        <Route path="/rsvp/quick" element={<QuickRsvp />} />
         <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
       </Routes>
       {isAuthenticated && <BottomNav />}
