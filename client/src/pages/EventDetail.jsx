@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { eventService, wishlistService, rsvpService, inviteService, contactService } from '../services/services';
+import HostDashboard from '../components/HostDashboard';
 import { useToast, EVENT_ICONS, EVENT_LABELS, formatDate, formatDateTime, daysUntil } from '../utils/helpers';
 
 export default function EventDetail() {
@@ -17,20 +18,24 @@ export default function EventDetail() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [itemForm, setItemForm] = useState({ item_name: '', description: '', product_url: '', price: '', image_url: '' });
+  const [rsvpList, setRsvpList] = useState([]);
+  const [savingItem, setSavingItem] = useState(false);
 
   useEffect(() => { loadAll(); }, [id]);
 
   const loadAll = async () => {
     try {
-      const [eventRes, statsRes, invRes] = await Promise.all([
+      const [eventRes, statsRes, invRes, rsvpRes] = await Promise.all([
         eventService.getOne(id),
         rsvpService.getStats(id),
         inviteService.getAll(id),
+        rsvpService.getList(id),
       ]);
       setEvent(eventRes.data.event);
       setRsvpStats(statsRes.data.stats);
       setInvitations(invRes.data.invitations);
-    } catch { showToast('Failed to load event', 'error'); }
+      setRsvpList(rsvpRes.data.rsvps || []);
+    } catch { showToast('Failed to load event data', 'error'); }
     setLoading(false);
   };
 
@@ -43,14 +48,29 @@ export default function EventDetail() {
 
   // Wishlist handlers
   const addWishlistItem = async () => {
-    if (!itemForm.item_name) { showToast('Item name is required', 'error'); return; }
+    if (!itemForm.item_name) { showToast('Item name is required!', 'warning'); return; }
+    
+    setSavingItem(true);
     try {
-      await wishlistService.addItem(id, { ...itemForm, price: itemForm.price ? parseFloat(itemForm.price) : null });
-      showToast('Item added! 🎁');
+      // 1. Clean the price (strip symbols like ₹ and commas)
+      const rawPrice = itemForm.price.toString().replace(/[^0-9.]/g, '');
+      const cleanPrice = rawPrice ? parseFloat(rawPrice) : null;
+
+      await wishlistService.addItem(id, { 
+        ...itemForm, 
+        price: isNaN(cleanPrice) ? null : cleanPrice 
+      });
+      
+      showToast('Item added to wishlist! 🎁');
       setItemForm({ item_name: '', description: '', product_url: '', price: '', image_url: '' });
       setShowAddItem(false);
       loadAll();
-    } catch (err) { showToast(err.response?.data?.error || 'Failed to add item', 'error'); }
+    } catch (err) { 
+      console.error('Wishlist error:', err);
+      showToast(err.response?.data?.error || 'Failed to add item. Check your internet.', 'error'); 
+    } finally {
+      setSavingItem(false);
+    }
   };
 
   const deleteWishlistItem = async (itemId) => {
@@ -71,19 +91,24 @@ export default function EventDetail() {
     if (selectedContacts.length === 0) { showToast('Select at least one contact', 'error'); return; }
     try {
       const res = await inviteService.create(id, selectedContacts);
-      showToast('Invitations created! 📨');
+      showToast(`${selectedContacts.length} invitations created! 📨`);
       setShowInviteModal(false);
-      
-      if (res.data && res.data.results) {
-        const createdInvites = res.data.results.filter(r => r.status === 'created');
-        for (const result of createdInvites) {
-          await sendWhatsApp(result.invitation.id);
-        }
-      }
-
       setSelectedContacts([]);
+      setActiveTab('invites'); 
       loadAll();
-    } catch (err) { showToast(err.response?.data?.error || 'Failed', 'error'); }
+
+      // NEW: Automatically trigger WhatsApp for the first invitation created
+      const newInvites = res.data.results.filter(r => r.status === 'created');
+      if (newInvites.length > 0) {
+        // We delay slightly to let the tab switch/modal close animations finish smoothly
+        setTimeout(() => {
+          sendWhatsApp(newInvites[0].invitation.id);
+        }, 800);
+      }
+    } catch (err) { 
+      console.error('Invite Error:', err);
+      showToast(err.response?.data?.error || 'Failed to create invitations', 'error'); 
+    }
   };
 
   const sendWhatsApp = async (inviteId) => {
@@ -156,8 +181,9 @@ export default function EventDetail() {
 
       {/* Tabs */}
       <div className="tabs">
-        {['overview', 'wishlist', 'guests', 'invites'].map((tab) => (
+        {['dashboard', 'overview', 'wishlist', 'guests', 'invites'].map((tab) => (
           <button key={tab} className={`tab ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+            {tab === 'dashboard' && '📈 Dashboard'}
             {tab === 'overview' && '📊 Overview'}
             {tab === 'wishlist' && `🎁 Wishlist (${event.wishlistItems?.length || 0})`}
             {tab === 'guests' && `👥 Guests (${totalRsvp})`}
@@ -167,6 +193,10 @@ export default function EventDetail() {
       </div>
 
       {/* Tab Content */}
+      {activeTab === 'dashboard' && (
+        <HostDashboard eventId={id} onDataUpdate={(data) => {}} />
+      )}
+
       {activeTab === 'overview' && (
         <div>
           {event.description && (
@@ -210,7 +240,7 @@ export default function EventDetail() {
           {/* Quick Stats */}
           <div className="flex gap-sm">
             <div className="card" style={{ flex: 1, padding: 'var(--space-md)', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent-green)' }}>{rsvpStats?.yes || 0}</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent-green)' }}>{rsvpStats?.totalMembers || 0}</div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Confirmed<br/>Guests</div>
             </div>
             <div className="card" style={{ flex: 1, padding: 'var(--space-md)', textAlign: 'center' }}>
@@ -255,8 +285,21 @@ export default function EventDetail() {
                 <textarea className="form-input" placeholder="Color, size, model preference..." rows={2} value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} />
               </div>
               <div className="flex gap-sm">
-                <button onClick={() => setShowAddItem(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
-                <button onClick={addWishlistItem} className="btn btn-primary" style={{ flex: 1 }}>Add Item</button>
+                <button 
+                  onClick={() => !savingItem && setShowAddItem(false)} 
+                  className="btn btn-secondary" style={{ flex: 1 }}
+                  disabled={savingItem}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={addWishlistItem} 
+                  className="btn btn-primary" 
+                  style={{ flex: 1 }}
+                  disabled={savingItem}
+                >
+                  {savingItem ? <span className="spinner"></span> : 'Add Item'}
+                </button>
               </div>
             </div>
           )}
@@ -355,14 +398,54 @@ export default function EventDetail() {
             </div>
           ) : (
             <div className="flex flex-col gap-sm">
+              {invitations.some(inv => inv.status === 'pending' || inv.status === 'created') && (
+                <div className="card" style={{ 
+                  padding: 'var(--space-lg)', 
+                  background: 'linear-gradient(135deg, rgba(65, 105, 225, 0.2), rgba(138, 43, 226, 0.2))',
+                  border: '2px dashed var(--primary-light)',
+                  textAlign: 'center',
+                  marginBottom: 'var(--space-md)',
+                  borderRadius: '24px'
+                }}>
+                  {(() => {
+                    const nextInv = invitations.find(inv => inv.status === 'pending' || inv.status === 'created');
+                    const pendingCount = invitations.filter(inv => inv.status === 'pending' || inv.status === 'created').length;
+                    return (
+                      <>
+                        <h3 style={{ fontSize: '1rem', marginBottom: '4px' }}>Ready to send! 📨</h3>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
+                          Next: <span style={{ color: 'white', fontWeight: 700 }}>{nextInv.contact?.name}</span> ({pendingCount} remaining)
+                        </p>
+                        <button 
+                          onClick={() => sendWhatsApp(nextInv.id)}
+                          className="btn btn-whatsapp btn-block btn-lg flex items-center justify-center gap-sm"
+                          style={{ padding: '18px', borderRadius: '16px', boxShadow: '0 8px 16px rgba(37, 211, 102, 0.3)' }}
+                        >
+                          🚀 Send to {nextInv.contact?.name.split(' ')[0]}
+                        </button>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+              {/* Individual List */}
               {invitations.map((inv) => (
                 <div key={inv.id} className="card" style={{ padding: 'var(--space-md)' }}>
-                  <div className="flex items-center justify-between mb-sm">
-                    <div>
+                  <div className="flex items-center justify-between">
+                    <div style={{ flex: 1 }}>
                       <h4 style={{ fontSize: '0.95rem' }}>{inv.contact?.name}</h4>
                       <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{inv.contact?.phone}</p>
+                      <div className="mt-xs">
+                        <span className={`badge status-${inv.status}`} style={{ fontSize: '0.7rem' }}>{inv.status}</span>
+                      </div>
                     </div>
-                    <span className={`badge status-${inv.status}`}>{inv.status}</span>
+                    <button 
+                      onClick={() => sendWhatsApp(inv.id)} 
+                      className="btn btn-whatsapp btn-sm flex items-center gap-xs"
+                      style={{ borderRadius: '12px', padding: '10px 16px' }}
+                    >
+                      📱 Send
+                    </button>
                   </div>
                 </div>
               ))}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { eventService } from '../services/services';
 import { useToast } from '../utils/helpers';
 
@@ -7,6 +7,7 @@ export default function CreateEvent() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
+  const [searchParams] = useSearchParams();
   const { showToast, ToastContainer } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -20,8 +21,13 @@ export default function CreateEvent() {
   useEffect(() => {
     if (isEdit) {
       loadEvent();
+    } else {
+      const qTitle = searchParams.get('title');
+      if (qTitle) {
+        setForm(prev => ({ ...prev, title: decodeURIComponent(qTitle) }));
+      }
     }
-  }, [id]);
+  }, [id, searchParams]);
 
   const loadEvent = async () => {
     try {

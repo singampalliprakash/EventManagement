@@ -18,6 +18,7 @@ export const eventService = {
 export const wishlistService = {
   addItem: (eventId, data) => api.post(`/events/${eventId}/wishlist`, data),
   getItems: (eventId) => api.get(`/events/${eventId}/wishlist`),
+  getSummary: (eventId) => api.get(`/events/${eventId}/wishlist/summary`),
   updateItem: (itemId, data) => api.put(`/wishlist/${itemId}`, data),
   deleteItem: (itemId) => api.delete(`/wishlist/${itemId}`),
   claimItem: (itemId, guest_token) => api.post(`/wishlist/${itemId}/claim`, { guest_token }),
@@ -28,6 +29,7 @@ export const rsvpService = {
   submit: (eventId, data) => api.post(`/events/${eventId}/rsvp`, data),
   getList: (eventId) => api.get(`/events/${eventId}/rsvp`),
   getStats: (eventId) => api.get(`/events/${eventId}/rsvp/stats`),
+  getPoll: (eventId) => api.get(`/events/${eventId}/rsvp/poll`),
 };
 
 export const contactService = {

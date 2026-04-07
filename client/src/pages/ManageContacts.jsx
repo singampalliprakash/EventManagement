@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { contactService } from '../services/services';
 import { useToast } from '../utils/helpers';
+import { Contacts } from '@capacitor-community/contacts';
+import { Capacitor } from '@capacitor/core';
 
 export default function ManageContacts() {
   const navigate = useNavigate();
@@ -12,9 +14,10 @@ export default function ManageContacts() {
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', group_label: 'General' });
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importType, setImportType] = useState(null); // 'phone' | 'csv'
+  const [importType, setImportType] = useState(null); // 'phone' | 'csv' | 'bulk'
   const [pendingContacts, setPendingContacts] = useState([]);
   const [importLoading, setImportLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => { loadContacts(); }, []);
 
@@ -44,32 +47,120 @@ export default function ManageContacts() {
   };
 
   const handlePhoneImport = async () => {
-    if (!('contacts' in navigator && 'select' in navigator.contacts)) {
-      showToast('Contact Picker not supported on this browser. Use CSV import instead!', 'warning');
+    if (!Capacitor.isNativePlatform()) {
+      showToast('Phone contacts are only available in the real mobile app! Please use CSV or Add manually here.', 'info');
       return;
     }
 
+    setImportLoading(true);
     try {
-      const props = ['name', 'tel', 'email'];
-      const opts = { multiple: true };
-      const selected = await navigator.contacts.select(props, opts);
-      
-      if (selected.length > 0) {
-        const formatted = selected.map(c => ({
-          name: c.name?.[0] || 'Unknown',
-          phone: c.tel?.[0]?.replace(/[^0-9]/g, '') || '',
-          email: c.email?.[0] || '',
-          group_label: 'General',
-          selected: true
-        })).filter(c => c.phone);
-        
-        setPendingContacts(formatted);
-        setImportType('review');
+      // 1. Explicitly check and request permission
+      const permResult = await Contacts.requestPermissions();
+      if (permResult.contacts !== 'granted') {
+        showToast('Contact permission is required to import from your phone.', 'warning');
+        return;
       }
+
+      // 2. Fetch all contacts (this is the multi-select way)
+      const res = await Contacts.getContacts({
+        projection: {
+          name: true,
+          phones: true,
+          emails: true,
+        }
+      });
+      
+      const raw = res.contacts || [];
+      
+      if (raw.length === 0) {
+        showToast('No contacts found on this phone.', 'warning');
+        return;
+      }
+
+      // 3. Format into our review list (cleaning up phone numbers)
+      const formatted = raw.map(c => ({
+        name: c.name?.display || 'Unknown',
+        phone: c.phones?.[0]?.number?.replace(/[^0-9+]/g, '') || '',
+        email: c.emails?.[0]?.address || '',
+        group_label: 'General',
+        selected: false
+      })).filter(c => c.phone.length > 5); // Filter out junk/blank numbers
+
+      if (formatted.length === 0) {
+        showToast('No valid phone numbers found in your contact list.', 'error');
+        return;
+      }
+
+      // 4. Open the Bulk Selector Modal
+      setPendingContacts(formatted);
+      setImportType('bulk');
+      setShowImportModal(true);
+      setSearchTerm('');
+      
     } catch (err) {
-      console.error(err);
-      showToast('Import cancelled or failed', 'error');
+      console.error('Contact import error:', err);
+      showToast('Native import failed. Please try CSV upload.', 'error');
+    } finally {
+      setImportLoading(false);
     }
+  };
+
+  const handleBulkImport = async () => {
+    const selected = pendingContacts.filter(c => c.selected);
+    if (selected.length === 0) {
+      showToast('No contacts selected! Check some boxes first 👤', 'warning');
+      return;
+    }
+
+    setImportLoading(true);
+    try {
+      const res = await contactService.bulkCreate(selected.map(c => ({
+        name: c.name,
+        phone: c.phone,
+        email: c.email,
+        group_label: c.group_label
+      })));
+      
+      showToast(res.data?.message || `${selected.length} contacts imported! 🚀`);
+      setShowImportModal(false);
+      setPendingContacts([]);
+      setSearchTerm('');
+      loadContacts();
+    } catch (err) {
+      console.error('Bulk Import Error:', err);
+      showToast(err.response?.data?.error || 'Failed to import bulk contacts', 'error');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const toggleSelectAll = (val) => {
+    const filtered = getFilteredContacts();
+    const filteredIds = filtered.map(f => f.phone + f.name);
+    setPendingContacts(prev => prev.map(c => {
+      if (filteredIds.includes(c.phone + c.name)) {
+        return { ...c, selected: val };
+      }
+      return c;
+    }));
+  };
+
+  const toggleOne = (contact) => {
+    setPendingContacts(prev => prev.map(c => {
+      if (c.phone === contact.phone && c.name === contact.name) {
+        return { ...c, selected: !c.selected };
+      }
+      return c;
+    }));
+  };
+
+  const getFilteredContacts = () => {
+    if (!searchTerm) return pendingContacts.slice(0, 150); 
+    const lower = searchTerm.toLowerCase();
+    return pendingContacts.filter(c => 
+      c.name.toLowerCase().includes(lower) || 
+      c.phone.includes(searchTerm)
+    ).slice(0, 150);
   };
 
   const handleCsvUpload = (e) => {
@@ -202,52 +293,115 @@ export default function ManageContacts() {
       {/* Import Modal */}
       {showImportModal && (
         <div className="modal-overlay" onClick={() => !importLoading && setShowImportModal(false)}>
-          <div className="modal-content card-glass" onClick={e => e.stopPropagation()} style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-            <div className="flex justify-between items-center mb-md">
-              <h3>Import Contacts</h3>
-              <button onClick={() => setShowImportModal(false)} className="btn-close">×</button>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ minHeight: '60vh', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '1.4rem' }}>{importType === 'bulk' ? 'Select Contacts' : 'Import Contacts'}</h3>
+              <button onClick={() => !importLoading && setShowImportModal(false)} className="modal-close" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
 
-            {!importType ? (
-              <div className="flex flex-col gap-md">
-                <button onClick={handlePhoneImport} className="btn btn-glass btn-lg flex items-center justify-center gap-sm">
-                  📱 Select from Phone
-                </button>
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>— OR —</div>
-                <label className="btn btn-secondary btn-lg flex items-center justify-center gap-sm cursor-pointer">
-                  📄 Upload CSV File
-                  <input type="file" accept=".csv" hidden onChange={handleCsvUpload} />
-                </label>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                  CSV Format: Name, Phone, Email
-                </p>
+            <div className="modal-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 'var(--space-md)', paddingBottom: 'var(--space-md)' }}>
+              <div className="flex justify-between items-center">
+                <h3 style={{ margin: 0 }}>Select Contacts</h3>
+                <button className="modal-close" onClick={() => { setShowImportModal(false); setPendingContacts([]); }}>✕</button>
               </div>
-            ) : importType === 'review' ? (
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <p style={{ fontSize: '0.85rem', marginBottom: 'var(--space-sm)' }}>Found {pendingContacts.length} contacts. Select to add:</p>
-                <div className="flex-1 overflow-y-auto mb-md pr-xs">
-                  {pendingContacts.map((c, i) => (
-                    <div key={i} className="flex items-center gap-sm p-sm mb-xs" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)' }}>
+              
+              {(importType === 'bulk' || importType === 'review') && (
+                <div style={{ marginTop: '4px' }}>
+                  <div className="form-group" style={{ marginBottom: '12px' }}>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="🔍 Search name or number..." 
+                      value={searchTerm} 
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{ borderRadius: '16px', padding: '14px 20px', background: 'rgba(255,255,255,0.03)' }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center" style={{ padding: '0 4px' }}>
+                    <label className="flex items-center gap-sm cursor-pointer" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                       <input 
                         type="checkbox" 
-                        checked={c.selected} 
-                        onChange={() => setPendingContacts(prev => prev.map((item, idx) => idx === i ? {...item, selected: !item.selected} : item))}
+                        onChange={(e) => toggleSelectAll(e.target.checked)} 
+                        style={{ width: '18px', height: '18px' }}
                       />
-                      <div className="flex-1">
-                        <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{c.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.phone}</div>
+                      Select All ({getFilteredContacts().length})
+                    </label>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--primary-light)', fontWeight: 600 }}>
+                      {pendingContacts.filter(c => c.selected).length} Selected
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-md)' }}>
+              {!importType ? (
+                <div className="flex flex-col gap-md" style={{ paddingTop: 'var(--space-sm)' }}>
+                  <button onClick={handlePhoneImport} className="btn btn-primary btn-lg flex items-center justify-center gap-sm" style={{ padding: '24px', fontSize: '1.1rem', borderRadius: '24px', boxShadow: '0 8px 24px rgba(65, 105, 225, 0.3)' }}>
+                    📱 Select from Phone
+                  </button>
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', margin: 'var(--space-md) 0' }}>— OR —</div>
+                  <label className="btn btn-secondary btn-lg flex items-center justify-center gap-sm cursor-pointer" style={{ width: '100%', padding: '20px', borderRadius: '24px', border: '1px solid var(--border)' }}>
+                    📄 Upload CSV File
+                    <input type="file" accept=".csv" hidden onChange={handleCsvUpload} />
+                  </label>
+                </div>
+              ) : importType === 'bulk' || importType === 'review' ? (
+                <div className="flex flex-col gap-sm" style={{ paddingBottom: '20px' }}>
+                  {getFilteredContacts().map((contact, idx) => (
+                    <div 
+                      key={idx} 
+                      className="card" 
+                      onClick={() => toggleOne(contact)}
+                      style={{ 
+                        padding: '16px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '16px', 
+                        cursor: 'pointer',
+                        background: contact.selected ? 'rgba(65, 105, 225, 0.12)' : 'rgba(255,255,255,0.02)',
+                        border: contact.selected ? '1px solid var(--primary-light)' : '1px solid transparent',
+                        transform: contact.selected ? 'scale(1.01)' : 'scale(1)',
+                        transition: 'all 0.2s ease',
+                        borderRadius: '16px'
+                      }}
+                    >
+                      <div style={{
+                        width: '24px', height: '24px', borderRadius: '50%',
+                        border: `2px solid ${contact.selected ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
+                        background: contact.selected ? 'var(--primary)' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontSize: '0.8rem',
+                      }}>
+                        {contact.selected && '✓'}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{contact.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{contact.phone}</div>
                       </div>
                     </div>
                   ))}
+                  {getFilteredContacts().length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                      No contacts found matching "{searchTerm}"
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-sm">
-                  <button onClick={() => setImportType(null)} className="btn btn-secondary" style={{ flex: 1 }}>Back</button>
-                  <button onClick={submitImport} className="btn btn-primary" style={{ flex: 2 }} disabled={importLoading}>
-                    {importLoading ? 'Saving...' : `Add ${pendingContacts.filter(c => c.selected).length} Contacts`}
-                  </button>
-                </div>
+              ) : null}
+            </div>
+
+            {(importType === 'bulk' || importType === 'review') && (
+              <div style={{ padding: 'var(--space-md)', background: 'var(--bg-card)', borderTop: '1px solid var(--border-glass-light)', zIndex: 100 }}>
+                <button 
+                  onClick={handleBulkImport} 
+                  className="btn btn-primary btn-block btn-lg" 
+                  disabled={importLoading || pendingContacts.filter(c => c.selected).length === 0}
+                  style={{ boxShadow: '0 8px 32px rgba(65, 105, 225, 0.4)', borderRadius: '20px', padding: '18px' }}
+                >
+                  {importLoading ? <span className="spinner"></span> : `Import ${pendingContacts.filter(c => c.selected).length} Contacts 🔥`}
+                </button>
               </div>
-            ) : null}
+            )}
           </div>
         </div>
       )}

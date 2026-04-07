@@ -10,6 +10,8 @@ export default function Dashboard() {
   const { showToast, ToastContainer } = useToast();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickTitle, setQuickTitle] = useState('');
 
   useEffect(() => {
     loadEvents();
@@ -34,6 +36,40 @@ export default function Dashboard() {
 
   return (
     <div className="page">
+      <ToastContainer />
+      
+      {/* Quick Create Modal */}
+      {showQuickCreate && (
+        <div className="modal-overlay" onClick={() => setShowQuickCreate(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>✨ New Event</h3>
+              <button className="modal-close" onClick={() => setShowQuickCreate(false)}>✕</button>
+            </div>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-md)', fontSize: '0.9rem' }}>
+              What is the name of your event?
+            </p>
+            <div className="form-group">
+              <input 
+                autoFocus
+                className="form-input" 
+                placeholder="e.g., Rahul's Birthday Party" 
+                value={quickTitle} 
+                onChange={(e) => setQuickTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && quickTitle && navigate(`/create-event?title=${encodeURIComponent(quickTitle)}`)}
+              />
+            </div>
+            <button 
+              className="btn btn-primary btn-block btn-lg" 
+              disabled={!quickTitle}
+              onClick={() => navigate(`/create-event?title=${encodeURIComponent(quickTitle)}`)}
+            >
+              Continue →
+            </button>
+          </div>
+        </div>
+      )}
+
       <ToastContainer />
       {/* Header */}
       <div className="flex items-center justify-between mb-lg">
@@ -76,7 +112,7 @@ export default function Dashboard() {
           <div className="icon">📅</div>
           <h3>No upcoming events</h3>
           <p>Create your first event and start managing wishlists & RSVPs!</p>
-          <button onClick={() => navigate('/create-event')} className="btn btn-primary" id="create-first-event">
+          <button onClick={() => setShowQuickCreate(true)} className="btn btn-primary" id="create-first-event">
             ✨ Create Event
           </button>
         </div>

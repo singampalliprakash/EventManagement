@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { sequelize } = require('./src/models');
 const { errorHandler } = require('./src/middleware/errorHandler');
 
@@ -23,6 +24,21 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from built client - BEFORE API routes
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath, {
+  maxAge: '1h',
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    } else if (filePath.endsWith('.svg')) {
+      res.setHeader('Content-Type', 'image/svg+xml');
+    }
+  }
+}));
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'EventWise API is running!' });
@@ -35,6 +51,18 @@ app.use('/api', wishlistRoutes);
 app.use('/api', rsvpRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api', invitationRoutes);
+
+// SPA fallback: serve index.html only for non-file routes
+app.get('*', (req, res, next) => {
+  // Don't serve index.html for asset files, API calls, or files with extensions  
+  if (req.path.startsWith('/assets') || 
+      req.path.startsWith('/api') ||
+      req.path.includes('.')) {
+    return next();
+  }
+  // For all other routes, serve index.html for SPA routing
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
+});
 
 // Error handler
 app.use(errorHandler);

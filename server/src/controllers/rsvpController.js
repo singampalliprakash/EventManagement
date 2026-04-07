@@ -102,4 +102,66 @@ const getRsvpStats = async (req, res, next) => {
   }
 };
 
-module.exports = { submitRsvp, getRsvpList, getRsvpStats };
+// Real-time polling endpoint - returns detailed RSVP data for host dashboard
+const getRsvpPoll = async (req, res, next) => {
+  try {
+    const event = await Event.findOne({ where: { id: req.params.id, user_id: req.user.id } });
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    const responses = await RsvpResponse.findAll({
+      where: { event_id: event.id },
+      include: [{ model: Guest, as: 'guest', attributes: ['id', 'name', 'phone', 'email'] }],
+      order: [['response', 'DESC'], ['responded_at', 'DESC']],
+    });
+
+    // Group by response type
+    const yesResponses = responses.filter((r) => r.response === 'yes');
+    const noResponses = responses.filter((r) => r.response === 'no');
+    const maybeResponses = responses.filter((r) => r.response === 'maybe');
+
+    const stats = {
+      lastUpdated: new Date(),
+      summary: {
+        yes: yesResponses.length,
+        no: noResponses.length,
+        maybe: maybeResponses.length,
+        total: responses.length,
+        expectedPeople: yesResponses.reduce((sum, r) => sum + r.member_count, 0),
+        possiblePeople: yesResponses.reduce((sum, r) => sum + r.member_count, 0) + 
+                        maybeResponses.reduce((sum, r) => sum + r.member_count, 0),
+      },
+      yesResponses: yesResponses.map((r) => ({
+        id: r.guest.id,
+        name: r.guest.name,
+        phone: r.guest.phone,
+        email: r.guest.email,
+        members: r.member_count,
+        message: r.message,
+        respondedAt: r.responded_at,
+      })),
+      noResponses: noResponses.map((r) => ({
+        id: r.guest.id,
+        name: r.guest.name,
+        phone: r.guest.phone,
+        message: r.message,
+        respondedAt: r.responded_at,
+      })),
+      maybeResponses: maybeResponses.map((r) => ({
+        id: r.guest.id,
+        name: r.guest.name,
+        phone: r.guest.phone,
+        members: r.member_count,
+        message: r.message,
+        respondedAt: r.responded_at,
+      })),
+    };
+
+    res.json(stats);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { submitRsvp, getRsvpList, getRsvpStats, getRsvpPoll };

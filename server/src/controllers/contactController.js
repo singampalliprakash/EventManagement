@@ -93,7 +93,7 @@ const bulkAddContacts = async (req, res, next) => {
     }
 
     const results = { created: 0, skipped: 0 };
-    
+
     // Get existing phone numbers for this user to check for duplicates
     const existingContacts = await Contact.findAll({
       where: { user_id: req.user.id },
@@ -104,10 +104,10 @@ const bulkAddContacts = async (req, res, next) => {
     const contactsToCreate = [];
     for (const c of contacts) {
       if (!c.name || !c.phone) continue;
-      
+
       // Clean phone number (some importers might include extra chars)
       const cleanPhone = c.phone.toString().replace(/[^0-9]/g, '');
-      
+
       if (existingPhones.has(cleanPhone)) {
         results.skipped++;
         continue;
@@ -120,7 +120,7 @@ const bulkAddContacts = async (req, res, next) => {
         email: c.email || null,
         group_label: c.group_label || 'General'
       });
-      
+
       // Add to set to prevent duplicates within the same bulk upload
       existingPhones.add(cleanPhone);
       results.created++;
@@ -130,9 +130,9 @@ const bulkAddContacts = async (req, res, next) => {
       await Contact.bulkCreate(contactsToCreate);
     }
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: `Import complete! Added ${results.created} contacts, skipped ${results.skipped} duplicates.`,
-      results 
+      results
     });
   } catch (error) {
     next(error);

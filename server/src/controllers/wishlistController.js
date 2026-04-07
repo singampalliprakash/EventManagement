@@ -143,4 +143,44 @@ const unclaimItem = async (req, res, next) => {
   }
 };
 
-module.exports = { addItem, getItems, updateItem, deleteItem, claimItem, unclaimItem };
+// Get wishlist summary for host dashboard
+const getWishlistSummary = async (req, res, next) => {
+  try {
+    const event = await Event.findOne({ where: { id: req.params.id, user_id: req.user.id } });
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found.' });
+    }
+
+    const items = await WishlistItem.findAll({
+      where: { event_id: event.id },
+      include: [{ model: Guest, as: 'claimedBy', attributes: ['id', 'name', 'email', 'phone'] }],
+      order: [['created_at', 'DESC']],
+    });
+
+    const summary = {
+      totalItems: items.length,
+      claimedItems: items.filter((i) => i.status === 'claimed').length,
+      availableItems: items.filter((i) => i.status !== 'claimed').length,
+      estimatedValue: items.reduce((sum, i) => sum + (i.price || 0), 0),
+      items: items.map((item) => ({
+        id: item.id,
+        name: item.item_name,
+        description: item.description,
+        price: item.price,
+        url: item.product_url,
+        platform: item.platform,
+        image: item.image_url,
+        status: item.status,
+        claimedBy: item.claimedBy 
+          ? { id: item.claimedBy.id, name: item.claimedBy.name, email: item.claimedBy.email, phone: item.claimedBy.phone }
+          : null,
+      })),
+    };
+
+    res.json(summary);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { addItem, getItems, updateItem, deleteItem, claimItem, unclaimItem, getWishlistSummary };

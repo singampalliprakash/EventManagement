@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">EventWise</string>
-    <string name="title_activity_main">EventWise</string>
+    <string name="app_name">Celebrate</string>
+    <string name="title_activity_main">Celebrate</string>
     <string name="package_name">com.eventwise.app</string>
     <string name="custom_url_scheme">com.eventwise.app</string>
 </resources>
