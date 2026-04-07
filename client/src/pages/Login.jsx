@@ -53,6 +53,7 @@ export default function Login() {
                 type="password"
                 className="form-input"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
