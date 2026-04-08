@@ -90,15 +90,25 @@ export default function EventDetail() {
   const sendInvitations = async () => {
     if (selectedContacts.length === 0) { showToast('Select at least one contact', 'error'); return; }
     try {
-      await inviteService.create(id, selectedContacts);
-      showToast(`${selectedContacts.length} invitation${selectedContacts.length > 1 ? 's' : ''} created! Now send via WhatsApp 📨`);
+      const res = await inviteService.create(id, selectedContacts);
+      const createdCount = res.data.results?.filter(r => r.status === 'created').length || 0;
+      
       setShowInviteModal(false);
       setSelectedContacts([]);
-      setActiveTab('invites');
       loadAll();
+
+      if (createdCount > 0) {
+        const newInvites = res.data.results?.filter(r => r.status === 'created').map(r => r.invitation.id) || [];
+        for (const inviteId of newInvites) {
+          await sendWhatsApp(inviteId);
+          await new Promise(r => setTimeout(r, 800));
+        }
+      } else {
+        showToast('Guest list updated!');
+      }
     } catch (err) {
       console.error('Invite Error:', err);
-      showToast(err.response?.data?.error || 'Failed to create invitations', 'error');
+      showToast(err.response?.data?.error || 'Failed to add guests', 'error');
     }
   };
 
@@ -175,7 +185,7 @@ export default function EventDetail() {
         </div>
         <div className="flex gap-sm mt-md">
           <button onClick={copyShareLink} className="btn btn-secondary btn-sm" style={{ flex: 1 }}>🔗 Copy Link</button>
-          <button onClick={openInviteModal} className="btn btn-whatsapp btn-sm" style={{ flex: 1 }}>📱 Invite</button>
+          <button onClick={openInviteModal} className="btn btn-primary btn-sm" style={{ flex: 1 }}>👥 Add Guests</button>
         </div>
       </div>
 
@@ -436,7 +446,7 @@ export default function EventDetail() {
         <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Send Invitations</h3>
+              <h3>Add Guests to Event</h3>
               <button className="modal-close" onClick={() => setShowInviteModal(false)}>✕</button>
             </div>
 
@@ -500,7 +510,7 @@ export default function EventDetail() {
                   className="btn btn-primary btn-block"
                   disabled={selectedContacts.length === 0}
                 >
-                  Create {selectedContacts.length} Invitation{selectedContacts.length !== 1 ? 's' : ''}
+                  Add {selectedContacts.length} Guest{selectedContacts.length !== 1 ? 's' : ''} to Event
                 </button>
               </>
             )}

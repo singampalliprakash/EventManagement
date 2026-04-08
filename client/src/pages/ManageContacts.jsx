@@ -294,19 +294,22 @@ export default function ManageContacts() {
       {showImportModal && (
         <div className="modal-overlay" onClick={() => !importLoading && setShowImportModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ minHeight: '60vh', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
-            <div className="modal-header">
-              <h3 style={{ fontSize: '1.4rem' }}>{importType === 'bulk' ? 'Select Contacts' : 'Import Contacts'}</h3>
-              <button onClick={() => !importLoading && setShowImportModal(false)} className="modal-close" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-            </div>
-
             <div className="modal-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 'var(--space-md)', paddingBottom: 'var(--space-md)' }}>
-              <div className="flex justify-between items-center">
-                <h3 style={{ margin: 0 }}>Select Contacts</h3>
-                <button className="modal-close" onClick={() => { setShowImportModal(false); setPendingContacts([]); }}>✕</button>
+              <div className="flex justify-between items-center" style={{ width: '100%' }}>
+                <h3 style={{ margin: 0, fontSize: '1.4rem' }}>
+                  {(!importType) ? 'Import Contacts' : (importType === 'bulk' || importType === 'review' ? 'Select Contacts' : 'Importing...')}
+                </h3>
+                <button 
+                  onClick={() => { setShowImportModal(false); setPendingContacts([]); setImportType(null); }} 
+                  className="modal-close" 
+                  style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  ×
+                </button>
               </div>
               
               {(importType === 'bulk' || importType === 'review') && (
-                <div style={{ marginTop: '4px' }}>
+                <div style={{ width: '100%', marginTop: '4px' }}>
                   <div className="form-group" style={{ marginBottom: '12px' }}>
                     <input 
                       type="text" 
@@ -337,8 +340,8 @@ export default function ManageContacts() {
             <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-md)' }}>
               {!importType ? (
                 <div className="flex flex-col gap-md" style={{ paddingTop: 'var(--space-sm)' }}>
-                  <button onClick={handlePhoneImport} className="btn btn-primary btn-lg flex items-center justify-center gap-sm" style={{ padding: '24px', fontSize: '1.1rem', borderRadius: '24px', boxShadow: '0 8px 24px rgba(65, 105, 225, 0.3)' }}>
-                    📱 Select from Phone
+                  <button onClick={handlePhoneImport} className="btn btn-primary btn-lg flex items-center justify-center gap-sm" disabled={importLoading} style={{ padding: '24px', fontSize: '1.1rem', borderRadius: '24px', boxShadow: '0 8px 24px rgba(65, 105, 225, 0.3)' }}>
+                    {importLoading ? <span className="spinner"></span> : '📱 Select from Phone'}
                   </button>
                   <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', margin: 'var(--space-md) 0' }}>— OR —</div>
                   <label className="btn btn-secondary btn-lg flex items-center justify-center gap-sm cursor-pointer" style={{ width: '100%', padding: '20px', borderRadius: '24px', border: '1px solid var(--border)' }}>
