@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { Capacitor } from '@capacitor/core';
 
-// For Android Emulator, use 10.0.2.2. For Web, use empty string to use Vite Proxy
-const baseURL = Capacitor.isNativePlatform() ? 'http://10.0.2.2:5000' : '';
+// For Android Emulator, use 10.0.2.2. For Web, use VITE_API_URL or Vite Proxy
+const buildApiUrl = import.meta.env.VITE_API_URL || '';
+const baseURL = Capacitor.isNativePlatform() ? 'http://10.0.2.2:5000' : buildApiUrl;
 
 const api = axios.create({
   baseURL: baseURL,

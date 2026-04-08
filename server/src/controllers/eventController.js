@@ -126,7 +126,11 @@ const getEventByShareCode = async (req, res, next) => {
     const event = await Event.findOne({
       where: { share_code: req.params.code },
       include: [
-        { model: WishlistItem, as: 'wishlistItems', attributes: { exclude: ['claimed_by_guest_id'] } },
+        { 
+          model: WishlistItem, 
+          as: 'wishlistItems',
+          include: [{ model: Guest, as: 'claimedBy', attributes: ['name', 'access_token'] }],
+        },
       ],
       attributes: { exclude: ['user_id'] },
     });

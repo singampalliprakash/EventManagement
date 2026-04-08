@@ -21,6 +21,9 @@ const createInvitations = async (req, res, next) => {
       return res.status(404).json({ error: 'No valid contacts found.' });
     }
 
+    // Detect client URL: use request origin header, or fall back to CLIENT_URL env, or default
+    const clientUrl = req.headers.origin || process.env.CLIENT_URL || 'http://localhost:5173';
+
     const results = [];
 
     for (const contact of contacts) {
@@ -44,7 +47,6 @@ const createInvitations = async (req, res, next) => {
       });
 
       // Generate invite link
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
       const invite_link = `${clientUrl}/event/${event.share_code}?guest=${guest.access_token}`;
 
       // Create invitation
@@ -132,7 +134,8 @@ const getWhatsAppLink = async (req, res, next) => {
       day: 'numeric',
     });
 
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    // Use request origin for the invite link (so it matches the current environment)
+    const clientUrl = req.headers.origin || process.env.CLIENT_URL || 'http://localhost:5173';
     const inviteLink = `${clientUrl}/event/${event.share_code}?guest=${invitation.guest.access_token}`;
 
     const message = `🎉 *You're invited to ${event.title}!*
@@ -149,7 +152,7 @@ Please confirm your attendance! 🙏`;
     const phone = invitation.contact.phone.replace(/[^0-9]/g, '');
     const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
-    res.json({ whatsappUrl, message });
+    res.json({ whatsappUrl, message, inviteLink });
   } catch (error) {
     next(error);
   }

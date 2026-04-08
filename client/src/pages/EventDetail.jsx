@@ -33,7 +33,7 @@ export default function EventDetail() {
       ]);
       setEvent(eventRes.data.event);
       setRsvpStats(statsRes.data.stats);
-      setInvitations(invRes.data.invitations);
+      setInvitations(invRes.data.invitations || []);
       setRsvpList(rsvpRes.data.rsvps || []);
     } catch { showToast('Failed to load event data', 'error'); }
     setLoading(false);
@@ -90,24 +90,24 @@ export default function EventDetail() {
   const sendInvitations = async () => {
     if (selectedContacts.length === 0) { showToast('Select at least one contact', 'error'); return; }
     try {
-      const res = await inviteService.create(id, selectedContacts);
-      showToast(`${selectedContacts.length} invitations created! 📨`);
+      await inviteService.create(id, selectedContacts);
+      showToast(`${selectedContacts.length} invitation${selectedContacts.length > 1 ? 's' : ''} created! Now send via WhatsApp 📨`);
       setShowInviteModal(false);
       setSelectedContacts([]);
-      setActiveTab('invites'); 
+      setActiveTab('invites');
       loadAll();
-
-      // NEW: Automatically trigger WhatsApp for the first invitation created
-      const newInvites = res.data.results.filter(r => r.status === 'created');
-      if (newInvites.length > 0) {
-        // We delay slightly to let the tab switch/modal close animations finish smoothly
-        setTimeout(() => {
-          sendWhatsApp(newInvites[0].invitation.id);
-        }, 800);
-      }
-    } catch (err) { 
+    } catch (err) {
       console.error('Invite Error:', err);
-      showToast(err.response?.data?.error || 'Failed to create invitations', 'error'); 
+      showToast(err.response?.data?.error || 'Failed to create invitations', 'error');
+    }
+  };
+
+  const sendAllWhatsApp = async () => {
+    const pending = invitations.filter(inv => inv.status === 'pending');
+    if (pending.length === 0) { showToast('No pending invitations', 'warning'); return; }
+    for (const inv of pending) {
+      await sendWhatsApp(inv.id);
+      await new Promise(r => setTimeout(r, 600));
     }
   };
 
@@ -386,9 +386,16 @@ export default function EventDetail() {
 
       {activeTab === 'invites' && (
         <div>
-          <button onClick={openInviteModal} className="btn btn-primary btn-block mb-md">
-            + Create Invitations
-          </button>
+          <div className="flex gap-sm mb-md">
+            <button onClick={openInviteModal} className="btn btn-primary" style={{ flex: 1 }}>
+              + Create Invitations
+            </button>
+            {invitations.some(inv => inv.status === 'pending') && (
+              <button onClick={sendAllWhatsApp} className="btn btn-whatsapp" style={{ flex: 1 }}>
+                📱 Send All
+              </button>
+            )}
+          </div>
 
           {invitations.length === 0 ? (
             <div className="empty-state">
@@ -398,36 +405,6 @@ export default function EventDetail() {
             </div>
           ) : (
             <div className="flex flex-col gap-sm">
-              {invitations.some(inv => inv.status === 'pending' || inv.status === 'created') && (
-                <div className="card" style={{ 
-                  padding: 'var(--space-lg)', 
-                  background: 'linear-gradient(135deg, rgba(65, 105, 225, 0.2), rgba(138, 43, 226, 0.2))',
-                  border: '2px dashed var(--primary-light)',
-                  textAlign: 'center',
-                  marginBottom: 'var(--space-md)',
-                  borderRadius: '24px'
-                }}>
-                  {(() => {
-                    const nextInv = invitations.find(inv => inv.status === 'pending' || inv.status === 'created');
-                    const pendingCount = invitations.filter(inv => inv.status === 'pending' || inv.status === 'created').length;
-                    return (
-                      <>
-                        <h3 style={{ fontSize: '1rem', marginBottom: '4px' }}>Ready to send! 📨</h3>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 'var(--space-md)' }}>
-                          Next: <span style={{ color: 'white', fontWeight: 700 }}>{nextInv.contact?.name}</span> ({pendingCount} remaining)
-                        </p>
-                        <button 
-                          onClick={() => sendWhatsApp(nextInv.id)}
-                          className="btn btn-whatsapp btn-block btn-lg flex items-center justify-center gap-sm"
-                          style={{ padding: '18px', borderRadius: '16px', boxShadow: '0 8px 16px rgba(37, 211, 102, 0.3)' }}
-                        >
-                          🚀 Send to {nextInv.contact?.name.split(' ')[0]}
-                        </button>
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
               {/* Individual List */}
               {invitations.map((inv) => (
                 <div key={inv.id} className="card" style={{ padding: 'var(--space-md)' }}>
@@ -439,12 +416,12 @@ export default function EventDetail() {
                         <span className={`badge status-${inv.status}`} style={{ fontSize: '0.7rem' }}>{inv.status}</span>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => sendWhatsApp(inv.id)} 
-                      className="btn btn-whatsapp btn-sm flex items-center gap-xs"
+                    <button
+                      onClick={() => sendWhatsApp(inv.id)}
+                      className="btn btn-whatsapp btn-sm"
                       style={{ borderRadius: '12px', padding: '10px 16px' }}
                     >
-                      📱 Send
+                      📱 {inv.status === 'pending' ? 'Send' : 'Resend'}
                     </button>
                   </div>
                 </div>

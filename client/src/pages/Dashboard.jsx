@@ -27,8 +27,8 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  const upcomingEvents = events.filter((e) => daysUntil(e.event_date) >= 0 && e.status !== 'cancelled');
-  const pastEvents = events.filter((e) => daysUntil(e.event_date) < 0 || e.status === 'cancelled');
+  const upcomingEvents = (events || []).filter((e) => daysUntil(e.event_date) >= 0 && e.status !== 'cancelled');
+  const pastEvents = (events || []).filter((e) => daysUntil(e.event_date) < 0 || e.status === 'cancelled');
 
   if (loading) {
     return <div className="loading-page"><div className="spinner"></div><p style={{ color: 'var(--text-muted)' }}>Loading events...</p></div>;
