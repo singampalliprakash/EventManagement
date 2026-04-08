@@ -18,11 +18,20 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: '*',
+  origin: true, // Reflect request origin to allow credentials
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request logging for debugging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// Explicitly handle OPTIONS preflight requests
+app.options('*', cors());
 
 // Health check
 app.get('/api/health', (req, res) => {
