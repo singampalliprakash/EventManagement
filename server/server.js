@@ -24,7 +24,20 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from built client - BEFORE API routes
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'EventWise API is running!' });
+});
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api', wishlistRoutes);
+app.use('/api', rsvpRoutes);
+app.use('/api/contacts', contactRoutes);
+app.use('/api', invitationRoutes);
+
+// Serve static files from built client
 const clientBuildPath = path.join(__dirname, '../client/dist');
 app.use(express.static(clientBuildPath, {
   maxAge: '1h',
@@ -38,19 +51,6 @@ app.use(express.static(clientBuildPath, {
     }
   }
 }));
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'EventWise API is running!' });
-});
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api', wishlistRoutes);
-app.use('/api', rsvpRoutes);
-app.use('/api/contacts', contactRoutes);
-app.use('/api', invitationRoutes);
 
 // SPA fallback: serve index.html only for non-file routes
 app.get('*', (req, res, next) => {
