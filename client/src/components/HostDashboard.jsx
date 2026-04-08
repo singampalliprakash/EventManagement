@@ -18,8 +18,8 @@ export default function HostDashboard({ eventId, onDataUpdate }) {
         wishlistService.getSummary(eventId),
       ]);
       setRsvpData(rsvpRes.data);
-      setWishlistData(wishlistRes);
-      onDataUpdate?.({ rsvp: rsvpRes.data, wishlist: wishlistRes });
+      setWishlistData(wishlistRes.data);
+      onDataUpdate?.({ rsvp: rsvpRes.data, wishlist: wishlistRes.data });
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       setError('Failed to load data');

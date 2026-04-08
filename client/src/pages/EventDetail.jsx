@@ -34,7 +34,7 @@ export default function EventDetail() {
       setEvent(eventRes.data.event);
       setRsvpStats(statsRes.data.stats);
       setInvitations(invRes.data.invitations || []);
-      setRsvpList(rsvpRes.data.rsvps || []);
+      setRsvpList(rsvpRes.data.responses || []);
     } catch { showToast('Failed to load event data', 'error'); }
     setLoading(false);
   };
@@ -366,7 +366,7 @@ export default function EventDetail() {
                       {rsvp.guest?.phone && <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{rsvp.guest.phone}</p>}
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <span className={`badge ${rsvp.response === 'yes' ? 'badge-success' : rsvp.response === 'no' ? 'badge-danger' : rsvp.response === 'no' ? 'badge-danger' : 'badge-warning'}`}>
+                      <span className={`badge ${rsvp.response === 'yes' ? 'badge-success' : rsvp.response === 'no' ? 'badge-danger' : 'badge-warning'}`}>
                         {rsvp.response === 'yes' ? '✓ Yes' : rsvp.response === 'no' ? '✕ No' : '? Maybe'}
                       </span>
                     </div>
