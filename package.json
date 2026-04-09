@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Root configuration to run both client and server concurrently",
   "scripts": {
+    "start": "cd server && node server.js",
     "install:all": "cd server && npm install && cd ../client && npm install",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
