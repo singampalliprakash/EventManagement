@@ -16,11 +16,32 @@ const invitationRoutes = require('./src/routes/invitations');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors({
-  origin: true, // Reflect request origin to allow credentials
+// CORS — explicitly allow production Vercel frontend and local dev
+const allowedOrigins = [
+  'https://event-management-pro.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+// Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -30,8 +51,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Explicitly handle OPTIONS preflight requests
-app.options('*', cors());
+// Explicitly handle OPTIONS preflight requests with same CORS config
+app.options('*', cors(corsOptions));
 
 // Health check
 app.get('/api/health', (req, res) => {
