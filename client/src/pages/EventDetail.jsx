@@ -42,7 +42,7 @@ export default function EventDetail() {
   const loadContacts = async () => {
     try {
       const res = await contactService.getAll();
-      setContacts(res.data.contacts);
+      setContacts(res.data.contacts || []);
     } catch { /* ignore */ }
   };
 

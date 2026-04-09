@@ -24,7 +24,7 @@ export default function ManageContacts() {
   const loadContacts = async () => {
     try {
       const res = await contactService.getAll();
-      setContacts(res.data.contacts);
+      setContacts(res.data.contacts || []);
     } catch { showToast('Failed to load contacts', 'error'); }
     setLoading(false);
   };

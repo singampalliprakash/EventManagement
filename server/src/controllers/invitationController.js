@@ -21,8 +21,8 @@ const createInvitations = async (req, res, next) => {
       return res.status(404).json({ error: 'No valid contacts found.' });
     }
 
-    // Detect client URL: use request origin header, or fall back to CLIENT_URL env, or default
-    const clientUrl = req.headers.origin || process.env.CLIENT_URL || 'http://localhost:5173';
+    // Detect client URL: prioritize environment variable for production links
+    const clientUrl = process.env.CLIENT_URL || req.headers.origin || 'http://localhost:5173';
 
     const results = [];
 
@@ -134,8 +134,8 @@ const getWhatsAppLink = async (req, res, next) => {
       day: 'numeric',
     });
 
-    // Use request origin for the invite link (so it matches the current environment)
-    const clientUrl = req.headers.origin || process.env.CLIENT_URL || 'http://localhost:5173';
+    // Use production URL from environment variables for the invite link
+    const clientUrl = process.env.CLIENT_URL || req.headers.origin || 'http://localhost:5173';
     const inviteLink = `${clientUrl}/event/${event.share_code}?guest=${invitation.guest.access_token}`;
 
     const message = `🎉 *You're invited to ${event.title}!*

@@ -18,8 +18,8 @@ const sequelize = connectionString
         underscored: true,
       },
     })
-  : new Sequelize(
-      process.env.DB_NAME || process.env.MYSQLDATABASE,
+    : new Sequelize(
+      process.env.DB_NAME || process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE,
       process.env.DB_USER || process.env.MYSQLUSER,
       process.env.DB_PASSWORD || process.env.DB_PASS || process.env.MYSQLPASSWORD,
       {

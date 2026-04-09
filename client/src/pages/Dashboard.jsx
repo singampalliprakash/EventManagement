@@ -20,7 +20,7 @@ export default function Dashboard() {
   const loadEvents = async () => {
     try {
       const res = await eventService.getAll();
-      setEvents(res.data.events);
+      setEvents(res.data.events || []);
     } catch (err) {
       showToast('Failed to load events', 'error');
     }
