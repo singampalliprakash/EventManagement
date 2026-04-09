@@ -54,9 +54,10 @@ app.use((req, res, next) => {
 // Explicitly handle OPTIONS preflight requests with same CORS config
 app.options('*', cors(corsOptions));
 
-// Health check
+// Health check — includes DB status
+let dbConnected = false;
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'EventWise API is running!' });
+  res.json({ status: 'ok', message: 'EventWise API is running!', db: dbConnected ? 'connected' : 'connecting' });
 });
 
 // API Routes
@@ -97,27 +98,33 @@ app.get('*', (req, res, next) => {
 // Error handler
 app.use(errorHandler);
 
-// Database sync & start server
-const startServer = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ Database connected successfully!');
+// Start server immediately so CORS & routes are always available
+app.listen(PORT, () => {
+  console.log(`🚀 EventWise API running at http://localhost:${PORT}`);
+  console.log(`📋 Health check: http://localhost:${PORT}/api/health`);
+});
 
-    // Sync models (creates tables if they don't exist)
-    await sequelize.sync({ alter: false });
-    console.log('✅ Database synced!');
-
-    app.listen(PORT, () => {
-      console.log(`🚀 EventWise API running at http://localhost:${PORT}`);
-      console.log(`📋 Health check: http://localhost:${PORT}/api/health`);
-    });
-  } catch (error) {
-    console.error('❌ Unable to connect to database:', error.message);
-    console.log('\n💡 Make sure MySQL is running and the database exists.');
-    console.log('   Create it with: CREATE DATABASE eventwise;');
-    console.log('\n   Then update the .env file with your MySQL credentials.');
-    process.exit(1);
+// Connect to DB after server is already listening (non-blocking)
+const connectDB = async (retries = 5) => {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      await sequelize.authenticate();
+      console.log('✅ Database connected successfully!');
+      await sequelize.sync({ alter: false });
+      console.log('✅ Database synced!');
+      dbConnected = true;
+      return;
+    } catch (error) {
+      console.error(`❌ DB connection attempt ${i}/${retries} failed: ${error.message}`);
+      if (i < retries) {
+        const wait = i * 3000;
+        console.log(`⏳ Retrying in ${wait / 1000}s...`);
+        await new Promise(r => setTimeout(r, wait));
+      } else {
+        console.error('❌ All DB connection attempts failed. API will return 503 for DB-dependent routes.');
+      }
+    }
   }
 };
 
-startServer();
+connectDB();
