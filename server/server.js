@@ -69,9 +69,9 @@ app.use(express.static(clientBuildPath, {
 // SPA fallback: serve index.html only for non-file routes
 app.get('*', (req, res, next) => {
   // Don't serve index.html for asset files, API calls, or files with extensions  
-  if (req.path.startsWith('/assets') || 
-      req.path.startsWith('/api') ||
-      req.path.includes('.')) {
+  if (req.path.startsWith('/assets') ||
+    req.path.startsWith('/api') ||
+    req.path.includes('.')) {
     return next();
   }
   // For all other routes, serve index.html for SPA routing
