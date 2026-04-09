@@ -16,26 +16,9 @@ const invitationRoutes = require('./src/routes/invitations');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS — explicitly allow production Vercel frontend and local dev
-const allowedOrigins = [
-  'https://event-management-pro.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-];
-
+// CORS — open to all origins (JWT auth uses Authorization header, not cookies)
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, server-to-server)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS blocked origin: ${origin}`);
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
-    }
-  },
-  credentials: true,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
@@ -51,7 +34,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Explicitly handle OPTIONS preflight requests with same CORS config
+// Handle OPTIONS preflight for all routes
 app.options('*', cors(corsOptions));
 
 // Health check — includes DB status
