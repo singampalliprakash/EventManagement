@@ -51,32 +51,47 @@ app.use('/api', rsvpRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api', invitationRoutes);
 
-// Serve static files from built client
+// Serve static files from built client (if directory exists)
+const fs = require('fs');
 const clientBuildPath = path.join(__dirname, '../client/dist');
-app.use(express.static(clientBuildPath, {
-  maxAge: '1h',
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    } else if (filePath.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    } else if (filePath.endsWith('.svg')) {
-      res.setHeader('Content-Type', 'image/svg+xml');
-    }
-  }
-}));
 
-// SPA fallback: serve index.html only for non-file routes
-app.get('*', (req, res, next) => {
-  // Don't serve index.html for asset files, API calls, or files with extensions  
-  if (req.path.startsWith('/assets') ||
-    req.path.startsWith('/api') ||
-    req.path.includes('.')) {
-    return next();
-  }
-  // For all other routes, serve index.html for SPA routing
-  res.sendFile(path.join(clientBuildPath, 'index.html'));
-});
+if (fs.existsSync(clientBuildPath)) {
+  console.log('📦 Serving static files from', clientBuildPath);
+  app.use(express.static(clientBuildPath, {
+    maxAge: '1h',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      } else if (filePath.endsWith('.svg')) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+      }
+    }
+  }));
+
+  // SPA fallback: serve index.html only for non-file routes
+  app.get('*', (req, res, next) => {
+    // Don't serve index.html for asset files, API calls, or files with extensions  
+    if (req.path.startsWith('/assets') ||
+      req.path.startsWith('/api') ||
+      req.path.includes('.')) {
+      return next();
+    }
+    // For all other routes, serve index.html for SPA routing
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+} else {
+  console.log('⚠️ client/dist directory not found. Static serving disabled.');
+  // Simple welcome for API-only mode
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'EventWise API is running!',
+      health: '/api/health',
+      documentation: 'Please use the frontend application on Vercel to interact with this API.'
+    });
+  });
+}
 
 // Error handler
 app.use(errorHandler);
