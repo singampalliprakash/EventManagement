@@ -2,8 +2,10 @@ import axios from 'axios';
 import { Capacitor } from '@capacitor/core';
 
 // For Android Emulator, use 10.0.2.2. For Web, use VITE_API_URL or Vite Proxy
-const buildApiUrl = import.meta.env.VITE_API_URL || '';
-const baseURL = Capacitor.isNativePlatform() ? 'https://eventwise-backend-56jc.onrender.com' : buildApiUrl;
+const buildApiUrl = import.meta.env.VITE_API_URL || '/api';
+const baseURL = Capacitor.isNativePlatform() 
+  ? 'https://eventwise-backend-56jc.onrender.com' 
+  : (window.location.hostname === 'localhost' ? '/api' : 'https://eventwise-backend-56jc.onrender.com');
 
 const api = axios.create({
   baseURL: baseURL,
