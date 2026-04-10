@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { eventService, wishlistService, rsvpService } from '../services/services';
-import { useToast, EVENT_ICONS, EVENT_LABELS, formatDate } from '../utils/helpers.jsx';
+import { useToast, EVENT_ICONS, EVENT_LABELS, formatDate, renderGradientText } from '../utils/helpers.jsx';
 
 export default function GuestView() {
   const { code } = useParams();
@@ -159,7 +159,9 @@ export default function GuestView() {
         </div>
       )}
       <div style={{ textAlign: 'center', padding: 'var(--space-lg) 0 var(--space-md)' }}>
-        <h1 className="text-gradient" style={{ fontSize: '1.7rem', marginBottom: '6px' }}>{event?.title || 'Event Celebration'}</h1>
+        <h1 style={{ fontSize: '1.7rem', marginBottom: '6px' }}>
+          {renderGradientText(event?.title || 'Event Celebration')}
+        </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
           {event?.custom_type || EVENT_LABELS[event?.event_type || 'other']}
         </p>
@@ -171,7 +173,7 @@ export default function GuestView() {
       <div className="card card-glass mb-md" style={{ padding: 'var(--space-lg)', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-2xl)' }}>
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>📅 Date & Time</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>🗓️ Date & Time</div>
             <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
               {new Date(event.event_date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at {new Date(event.event_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
             </div>

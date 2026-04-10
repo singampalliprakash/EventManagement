@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { eventService } from '../services/services';
-import { useToast, EVENT_ICONS, EVENT_LABELS, formatDate, daysUntil } from '../utils/helpers';
+import { useToast, EVENT_ICONS, EVENT_LABELS, formatDate, daysUntil, renderGradientText } from '../utils/helpers';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -109,7 +109,7 @@ export default function Dashboard() {
 
       {upcomingEvents.length === 0 ? (
         <div className="empty-state">
-          <div className="icon">📅</div>
+          <div className="icon">🗓️</div>
           <h3>No upcoming events</h3>
           <p>Create your first event and start managing wishlists & RSVPs!</p>
           <button onClick={() => setShowQuickCreate(true)} className="btn btn-primary" id="create-first-event">
@@ -132,7 +132,7 @@ export default function Dashboard() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h3 style={{ fontSize: '1rem', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {event.title}
+                    {renderGradientText(event.title)}
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                     {formatDate(event.event_date)}

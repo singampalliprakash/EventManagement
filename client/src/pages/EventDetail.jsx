@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { eventService, wishlistService, rsvpService, inviteService, contactService } from '../services/services';
 import HostDashboard from '../components/HostDashboard';
-import { useToast, EVENT_ICONS, EVENT_LABELS, formatDate, formatDateTime, daysUntil } from '../utils/helpers';
+import { useToast, EVENT_ICONS, EVENT_LABELS, formatDate, formatDateTime, daysUntil, renderGradientText } from '../utils/helpers';
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -159,7 +159,7 @@ export default function EventDetail() {
       <div className="page-header">
         <button className="back-btn" onClick={() => navigate('/dashboard')}>←</button>
         <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: '1.3rem' }}>{event.title}</h1>
+          <h1 style={{ fontSize: '1.3rem' }}>{renderGradientText(event.title)}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{event.custom_type || EVENT_LABELS[event.event_type]}</p>
         </div>
         <div className="flex gap-xs">
@@ -181,7 +181,7 @@ export default function EventDetail() {
             </div>
             <div>
             <div className="flex items-center gap-sm mb-sm">
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>📅 {formatDate(event.event_date)}</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>🗓️ {formatDate(event.event_date)}</span>
             </div>
             {event.venue && (
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>📍 {event.venue}</div>

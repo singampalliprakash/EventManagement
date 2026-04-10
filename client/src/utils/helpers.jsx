@@ -70,3 +70,36 @@ export const daysUntil = (dateStr) => {
   const diff = new Date(dateStr) - new Date();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
+
+/**
+ * Smartly renders text with a gradient, keeping emojis in their original color.
+ */
+export const renderGradientText = (text) => {
+  if (!text) return null;
+  
+  // Regex to match emojis
+  const emojiRegex = /(\p{Extended_Pictographic}|\p{Emoji_Component})/gu;
+  const parts = text.split(emojiRegex);
+  
+  return parts.map((part, i) => {
+    if (!part) return null;
+    if (emojiRegex.test(part)) {
+      // It's an emoji: render normally by overriding the gradient fill
+      return (
+        <span 
+          key={i} 
+          style={{ 
+            WebkitTextFillColor: 'initial', 
+            backgroundClip: 'initial', 
+            display: 'inline-block',
+            WebkitBackgroundClip: 'initial' 
+          }}
+        >
+          {part}
+        </span>
+      );
+    }
+    // It's text: render with gradient
+    return <span key={i} className="text-gradient">{part}</span>;
+  });
+};
