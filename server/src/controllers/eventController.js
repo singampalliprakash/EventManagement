@@ -3,7 +3,7 @@ const { generateShareCode } = require('../utils/generateCode');
 
 const createEvent = async (req, res, next) => {
   try {
-    const { title, event_type, description, event_date, venue } = req.body;
+    const { title, event_type, custom_type, description, event_date, venue } = req.body;
 
     if (!title || !event_date) {
       return res.status(400).json({ error: 'Title and event date are required.' });
@@ -24,6 +24,7 @@ const createEvent = async (req, res, next) => {
       description,
       event_date,
       venue,
+      custom_type,
       image_url: req.body.image_url,
       share_code,
     });
@@ -99,8 +100,8 @@ const updateEvent = async (req, res, next) => {
       return res.status(404).json({ error: 'Event not found.' });
     }
 
-    const { title, event_type, description, event_date, venue, image_url, status } = req.body;
-    await event.update({ title, event_type, description, event_date, venue, image_url, status });
+    const { title, event_type, custom_type, description, event_date, venue, image_url, status } = req.body;
+    await event.update({ title, event_type, custom_type, description, event_date, venue, image_url, status });
 
     res.json({ message: 'Event updated!', event });
   } catch (error) {

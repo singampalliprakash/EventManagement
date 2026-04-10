@@ -38,6 +38,10 @@ const Event = sequelize.define('Event', {
     type: DataTypes.TEXT('long'),
     allowNull: true,
   },
+  custom_type: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
   share_code: {
     type: DataTypes.STRING(20),
     allowNull: false,

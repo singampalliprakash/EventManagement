@@ -160,7 +160,7 @@ export default function EventDetail() {
         <button className="back-btn" onClick={() => navigate('/dashboard')}>←</button>
         <div style={{ flex: 1 }}>
           <h1 style={{ fontSize: '1.3rem' }}>{event.title}</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{EVENT_LABELS[event.event_type]}</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{event.custom_type || EVENT_LABELS[event.event_type]}</p>
         </div>
         <div className="flex gap-xs">
           <button onClick={() => navigate(`/edit-event/${id}`)} className="btn btn-secondary btn-sm">✏️</button>

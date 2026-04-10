@@ -17,6 +17,7 @@ export default function CreateEvent() {
     event_date: '',
     venue: '',
     image_url: '',
+    custom_type: '',
   });
 
   const handleImageChange = async (e) => {
@@ -85,6 +86,7 @@ export default function CreateEvent() {
         event_date: e.event_date ? new Date(e.event_date).toISOString().slice(0, 16) : '',
         venue: e.venue || '',
         image_url: e.image_url || '',
+        custom_type: e.custom_type || '',
       });
     } catch {
       showToast('Failed to load event', 'error');
@@ -171,6 +173,25 @@ export default function CreateEvent() {
             ))}
           </div>
         </div>
+
+        {form.event_type === 'other' && (
+          <div className="form-group animate-fade-in">
+            <label className="form-label" style={{ color: 'var(--primary-light)' }}>Custom Event Name *</label>
+            <input
+              id="event-custom-type"
+              type="text"
+              className="form-input"
+              style={{ borderColor: 'var(--primary-light)', background: 'rgba(108, 92, 231, 0.05)' }}
+              placeholder="e.g., Pooja, Naming Ceremony, Engagement"
+              value={form.custom_type}
+              onChange={(e) => setForm({ ...form, custom_type: e.target.value })}
+              required={form.event_type === 'other'}
+            />
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              This name will appear on the invitation instead of "Other".
+            </p>
+          </div>
+        )}
 
         <div className="form-group">
           <label className="form-label">Date & Time *</label>

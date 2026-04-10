@@ -137,7 +137,9 @@ export default function GuestView() {
       )}
       <div style={{ textAlign: 'center', padding: 'var(--space-lg) 0 var(--space-md)' }}>
         <h1 className="text-gradient" style={{ fontSize: '1.7rem', marginBottom: '6px' }}>{event?.title || 'Event Celebration'}</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{EVENT_LABELS[event?.event_type || 'other']}</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          {event?.custom_type || EVENT_LABELS[event?.event_type || 'other']}
+        </p>
       </div>
 
       {/* Info Card */}
