@@ -10,6 +10,7 @@ export default function GuestView() {
   const { showToast, ToastContainer } = useToast();
 
   const [event, setEvent] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [rsvpStats, setRsvpStats] = useState(null);
   const [rsvpForm, setRsvpForm] = useState({ response: '', member_count: 1, message: '' });
@@ -121,6 +122,50 @@ export default function GuestView() {
 
   const totalRsvp = Number(rsvpStats?.yes || 0) + Number(rsvpStats?.no || 0) + Number(rsvpStats?.maybe || 0);
 
+  useEffect(() => {
+    if (!event?.event_date) return;
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = new Date(event.event_date).getTime() - now;
+      
+      if (distance < 0) {
+        setTimeLeft(null);
+        clearInterval(timer);
+      } else {
+        setTimeLeft({
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((distance % (1000 * 60)) / 1000),
+        });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [event]);
+
+  const Countdown = () => {
+    if (!timeLeft) return null;
+    return (
+      <div style={{ 
+        display: 'flex', justifyContent: 'center', gap: '8px', 
+        padding: '12px', background: 'rgba(255,255,255,0.03)', 
+        borderRadius: '16px', margin: '0 20px 20px',
+        border: '1px solid var(--border-glass-light)'
+      }}>
+        {[
+          { l: 'Days', v: timeLeft.days },
+          { l: 'Hrs', v: timeLeft.hours },
+          { l: 'Min', v: timeLeft.minutes },
+          { l: 'Sec', v: timeLeft.seconds }
+        ].map((t, i) => (
+          <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary-light)' }}>{t.v}</div>
+            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.l}</div>
+          </div>
+        ))}
+      </div>
+    );
+  };
   return (
     <div className="page">
       <ToastContainer />
@@ -142,6 +187,8 @@ export default function GuestView() {
         </p>
       </div>
 
+      <Countdown />
+
       {/* Info Card */}
       <div className="card card-glass mb-md" style={{ padding: 'var(--space-lg)', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-2xl)' }}>
@@ -152,9 +199,34 @@ export default function GuestView() {
             </div>
           </div>
           {event.venue && (
-            <div>
+            <div style={{ position: 'relative' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>📍 Venue</div>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{event.venue}</div>
+              <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  fontWeight: 600, 
+                  fontSize: '0.9rem', 
+                  color: 'var(--primary-light)', 
+                  textDecoration: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>{event.venue}</span>
+                <span style={{ 
+                  fontSize: '0.7rem', 
+                  background: 'rgba(108, 92, 231, 0.1)', 
+                  padding: '4px 10px', 
+                  borderRadius: '10px',
+                  border: '1px solid var(--primary-light)'
+                }}>
+                  🧭 Get Directions
+                </span>
+              </a>
             </div>
           )}
         </div>
@@ -342,9 +414,30 @@ export default function GuestView() {
       </div>
 
       {/* Footer */}
-      <div style={{ padding: 'var(--space-xl) 0', textAlign: 'center', opacity: 0.4, fontSize: '0.75rem' }}>
+      <div style={{ padding: 'var(--space-xl) 0 80px', textAlign: 'center', opacity: 0.4, fontSize: '0.75rem' }}>
         <p>Made with ❤️ by EventWise</p>
       </div>
+
+      {/* Floating WhatsApp Contact */}
+      {event.host?.phone && (
+        <a
+          href={`https://wa.me/${event.host.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${event.host.name}, I have a question about the ${event.title} celebration!`)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            position: 'fixed', bottom: '24px', right: '24px',
+            background: '#25D366', color: 'white',
+            width: '60px', height: '60px', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.8rem', boxShadow: '0 8px 24px rgba(37,211,102,0.4)',
+            zIndex: 1000, transition: 'transform 0.3s ease',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          📱
+        </a>
+      )}
     </div>
   );
 }

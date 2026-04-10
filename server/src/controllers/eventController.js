@@ -133,6 +133,11 @@ const getEventByShareCode = async (req, res, next) => {
           as: 'wishlistItems',
           include: [{ model: Guest, as: 'claimedBy', attributes: ['name', 'access_token'] }],
         },
+        {
+          model: require('../models').User,
+          as: 'host',
+          attributes: ['name', 'phone']
+        }
       ],
       attributes: { exclude: ['user_id'] },
     });
