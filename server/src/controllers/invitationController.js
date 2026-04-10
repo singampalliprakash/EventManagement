@@ -140,7 +140,7 @@ const getWhatsAppLink = async (req, res, next) => {
 
     const message = `🎉 *You're invited to ${event.title}!*
 
-📅 *Date:* ${eventDate}
+🗓️ *Date:* ${eventDate}
 📍 *Venue:* ${event.venue || 'TBD'}
 
 ${event.description ? `📝 ${event.description}\n` : ''}
