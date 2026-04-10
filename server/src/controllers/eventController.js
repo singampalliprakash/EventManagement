@@ -24,6 +24,7 @@ const createEvent = async (req, res, next) => {
       description,
       event_date,
       venue,
+      image_url: req.body.image_url,
       share_code,
     });
 
@@ -98,8 +99,8 @@ const updateEvent = async (req, res, next) => {
       return res.status(404).json({ error: 'Event not found.' });
     }
 
-    const { title, event_type, description, event_date, venue, status } = req.body;
-    await event.update({ title, event_type, description, event_date, venue, status });
+    const { title, event_type, description, event_date, venue, image_url, status } = req.body;
+    await event.update({ title, event_type, description, event_date, venue, image_url, status });
 
     res.json({ message: 'Event updated!', event });
   } catch (error) {

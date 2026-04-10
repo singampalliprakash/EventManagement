@@ -170,11 +170,16 @@ export default function EventDetail() {
 
       {/* Event Info Card */}
       <div className="card mb-md" style={{ padding: 'var(--space-md)' }}>
-        <div className="flex gap-md items-center">
-          <div className={`event-icon event-icon-${event.event_type}`} style={{ width: '52px', height: '52px', fontSize: '1.6rem' }}>
-            {EVENT_ICONS[event.event_type]}
-          </div>
-          <div>
+          {event.image_url && (
+            <div style={{ width: '100%', marginBottom: 'var(--space-md)' }}>
+              <img src={event.image_url} alt="Event" style={{ width: '100%', borderRadius: 'var(--radius-md)', maxHeight: '150px', objectFit: 'cover' }} />
+            </div>
+          )}
+          <div className="flex gap-md items-center">
+            <div className={`event-icon event-icon-${event.event_type}`} style={{ width: '52px', height: '52px', fontSize: '1.6rem' }}>
+              {EVENT_ICONS[event.event_type]}
+            </div>
+            <div>
             <div className="flex items-center gap-sm mb-sm">
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>📅 {formatDate(event.event_date)}</span>
             </div>

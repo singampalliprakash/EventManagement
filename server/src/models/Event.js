@@ -34,6 +34,10 @@ const Event = sequelize.define('Event', {
     type: DataTypes.STRING(500),
     allowNull: true,
   },
+  image_url: {
+    type: DataTypes.TEXT('long'),
+    allowNull: true,
+  },
   share_code: {
     type: DataTypes.STRING(20),
     allowNull: false,

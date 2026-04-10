@@ -125,11 +125,17 @@ export default function GuestView() {
     <div className="page">
       <ToastContainer />
 
-      {/* Event Header */}
-      <div style={{ textAlign: 'center', padding: 'var(--space-lg) 0 var(--space-md)' }}>
-        <div className={`event-icon event-icon-${event?.event_type || 'other'}`} style={{ width: '72px', height: '72px', fontSize: '2.2rem', margin: '0 auto var(--space-md)' }}>
-          {EVENT_ICONS[event?.event_type || 'other']}
+      {/* Event Header & Banner */}
+      {event.image_url && (
+        <div style={{ padding: 'var(--space-md) var(--space-sm) 0' }}>
+          <img 
+            src={event.image_url} 
+            alt="Event" 
+            style={{ width: '100%', borderRadius: '24px', maxHeight: '300px', objectFit: 'cover', boxShadow: '0 8px 16px rgba(0,0,0,0.3)' }} 
+          />
         </div>
+      )}
+      <div style={{ textAlign: 'center', padding: 'var(--space-lg) 0 var(--space-md)' }}>
         <h1 className="text-gradient" style={{ fontSize: '1.7rem', marginBottom: '6px' }}>{event?.title || 'Event Celebration'}</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{EVENT_LABELS[event?.event_type || 'other']}</p>
       </div>
@@ -138,8 +144,10 @@ export default function GuestView() {
       <div className="card card-glass mb-md" style={{ padding: 'var(--space-lg)', textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-2xl)' }}>
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>📅 Date</div>
-            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{formatDate(event.event_date)}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>📅 Date & Time</div>
+            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+              {new Date(event.event_date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at {new Date(event.event_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            </div>
           </div>
           {event.venue && (
             <div>
@@ -155,9 +163,9 @@ export default function GuestView() {
 
       {/* ── Section 1: RSVP ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
-        <div style={{ fontWeight: 800, fontSize: '0.75rem', color: 'var(--primary-light)', letterSpacing: '1px' }}>01</div>
         <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, var(--primary-light), transparent)' }}></div>
-        <div style={{ color: 'white', fontWeight: 700, fontSize: '0.9rem' }}>YOUR RESPONSE</div>
+        <div style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1px' }}>YOUR RESPONSE</div>
+        <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, var(--primary-light), transparent)' }}></div>
       </div>
 
       <div style={{ marginBottom: 'var(--space-2xl)' }}>
@@ -242,26 +250,14 @@ export default function GuestView() {
           </div>
         )}
 
-        {/* RSVP stats */}
-        {rsvpStats && totalRsvp > 0 && (
-          <div className="card card-glass-dark" style={{ padding: 'var(--space-md)', marginTop: 'var(--space-md)' }}>
-            <h4 style={{ marginBottom: 'var(--space-md)', fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Who else is coming?</h4>
-            <div className="flex justify-between items-center mb-sm">
-              <span style={{ fontSize: '0.85rem' }}>Confirmed: <b style={{ color: 'var(--success)' }}>{rsvpStats.yes}</b></span>
-              <span style={{ fontSize: '0.85rem' }}>Total Responses: {totalRsvp}</span>
-            </div>
-            <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', background: 'var(--primary)', width: `${(rsvpStats.yes / totalRsvp) * 100}%`, transition: 'width 1s ease' }}></div>
-            </div>
-          </div>
-        )}
+
       </div>
 
       {/* ── Section 2: Wishlist ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
-        <div style={{ fontWeight: 800, fontSize: '0.75rem', color: 'var(--accent-pink)', letterSpacing: '1px' }}>02</div>
         <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, var(--accent-pink), transparent)' }}></div>
-        <div style={{ color: 'white', fontWeight: 700, fontSize: '0.9rem' }}>CELEBRATION GIFT REGISTRY</div>
+        <div style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1px' }}>GIFT REGISTRY</div>
+        <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, var(--accent-pink), transparent)' }}></div>
       </div>
 
       <div style={{ marginBottom: 'var(--space-2xl)' }}>

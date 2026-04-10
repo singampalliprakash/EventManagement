@@ -16,7 +16,52 @@ export default function CreateEvent() {
     description: '',
     event_date: '',
     venue: '',
+    image_url: '',
   });
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 20 * 1024 * 1024) {
+      showToast('Image is too large. Please select a photo under 20MB.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Resize if larger than 1000px
+        const maxDim = 1000;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height *= maxDim / width;
+            width = maxDim;
+          } else {
+            width *= maxDim / height;
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to compressed JPEG (lower quality for smaller payload)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+        setForm(prev => ({ ...prev, image_url: compressedBase64 }));
+        showToast('Photo uploaded! ✨');
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (isEdit) {
@@ -39,6 +84,7 @@ export default function CreateEvent() {
         description: e.description || '',
         event_date: e.event_date ? new Date(e.event_date).toISOString().slice(0, 16) : '',
         venue: e.venue || '',
+        image_url: e.image_url || '',
       });
     } catch {
       showToast('Failed to load event', 'error');
@@ -156,10 +202,72 @@ export default function CreateEvent() {
             id="event-description"
             className="form-input"
             placeholder="Add details about the event..."
-            rows={3}
+            rows={2}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🖼️</span> Event Banner / Photo
+          </label>
+          <div 
+            style={{ 
+              border: '2px dashed var(--primary-light)', 
+              borderRadius: '20px', 
+              padding: 'var(--space-lg)', 
+              textAlign: 'center', 
+              background: 'rgba(255,255,255,0.02)',
+              position: 'relative',
+              overflow: 'hidden',
+              minHeight: '160px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {form.image_url ? (
+              <div style={{ position: 'relative', width: '100%' }}>
+                <img 
+                  src={form.image_url} 
+                  alt="Preview" 
+                  style={{ width: '100%', maxHeight: '250px', objectFit: 'cover', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }} 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setForm({ ...form, image_url: '' })}
+                  style={{
+                    position: 'absolute', top: '12px', right: '12px',
+                    background: 'var(--rsvp-no)', border: 'none', color: 'white',
+                    width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+                  }}
+                >✕</button>
+              </div>
+            ) : (
+              <div style={{ padding: '10px' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '12px', filter: 'drop-shadow(0 0 8px var(--primary-light))' }}>📸</div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '18px', fontWeight: 500 }}>Upload a beautiful photo for your invite</p>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageChange} 
+                  style={{ display: 'none' }} 
+                  id="event-image-upload"
+                />
+                <label 
+                  htmlFor="event-image-upload" 
+                  className="btn btn-primary"
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '14px' }}
+                >
+                  <span>📤</span> Select Photo
+                </label>
+              </div>
+            )}
+          </div>
         </div>
 
         <button
