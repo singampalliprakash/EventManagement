@@ -95,6 +95,27 @@ export default function GuestView() {
   const isClaimedByMe = (item) =>
     item.claimedBy && guestToken && item.claimedBy.access_token === guestToken;
 
+  useEffect(() => {
+    if (!event?.event_date) return;
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = new Date(event.event_date).getTime() - now;
+      
+      if (distance < 0) {
+        setTimeLeft(null);
+        clearInterval(timer);
+      } else {
+        setTimeLeft({
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((distance % (1000 * 60)) / 1000),
+        });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [event]);
+
   if (loading) return (
     <div style={{ background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
       <div style={{ width: '44px', height: '44px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
@@ -122,50 +143,7 @@ export default function GuestView() {
 
   const totalRsvp = Number(rsvpStats?.yes || 0) + Number(rsvpStats?.no || 0) + Number(rsvpStats?.maybe || 0);
 
-  useEffect(() => {
-    if (!event?.event_date) return;
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = new Date(event.event_date).getTime() - now;
-      
-      if (distance < 0) {
-        setTimeLeft(null);
-        clearInterval(timer);
-      } else {
-        setTimeLeft({
-          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((distance % (1000 * 60)) / 1000),
-        });
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [event]);
 
-  const Countdown = () => {
-    if (!timeLeft) return null;
-    return (
-      <div style={{ 
-        display: 'flex', justifyContent: 'center', gap: '8px', 
-        padding: '12px', background: 'rgba(255,255,255,0.03)', 
-        borderRadius: '16px', margin: '0 20px 20px',
-        border: '1px solid var(--border-glass-light)'
-      }}>
-        {[
-          { l: 'Days', v: timeLeft.days },
-          { l: 'Hrs', v: timeLeft.hours },
-          { l: 'Min', v: timeLeft.minutes },
-          { l: 'Sec', v: timeLeft.seconds }
-        ].map((t, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary-light)' }}>{t.v}</div>
-            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.l}</div>
-          </div>
-        ))}
-      </div>
-    );
-  };
   return (
     <div className="page">
       <ToastContainer />
@@ -187,7 +165,7 @@ export default function GuestView() {
         </p>
       </div>
 
-      <Countdown />
+      <Countdown timeLeft={timeLeft} />
 
       {/* Info Card */}
       <div className="card card-glass mb-md" style={{ padding: 'var(--space-lg)', textAlign: 'center' }}>
@@ -438,6 +416,29 @@ export default function GuestView() {
           📱
         </a>
       )}
+    </div>
+  );
+}
+function Countdown({ timeLeft }) {
+  if (!timeLeft) return null;
+  return (
+    <div style={{ 
+      display: 'flex', justifyContent: 'center', gap: '8px', 
+      padding: '12px', background: 'rgba(255,255,255,0.03)', 
+      borderRadius: '16px', margin: '0 20px 20px',
+      border: '1px solid var(--border-glass-light)'
+    }}>
+      {[
+        { l: 'Days', v: timeLeft.days },
+        { l: 'Hrs', v: timeLeft.hours },
+        { l: 'Min', v: timeLeft.minutes },
+        { l: 'Sec', v: timeLeft.seconds }
+      ].map((t, i) => (
+        <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary-light)' }}>{t.v}</div>
+          <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.l}</div>
+        </div>
+      ))}
     </div>
   );
 }
